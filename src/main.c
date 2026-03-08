@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			if(isValid == 0){
-				printf("%s: not found",input+5);
+				printf("%s: not found\n",input+5);
 			}
 		}else {
 			printf("%s: command not found\n", input);
