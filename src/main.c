@@ -3,14 +3,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
+#include <wait.h>
 
-int main(int argc, char *argv[]) {
-  // Flush after every printf
-	
+char* get_inbuilt_cmd_path(char *input){
 	char* path_value = getenv("PATH");
 	if(path_value == NULL){
-		return 1;
+		return NULL;
 	}
 	int no_of_path = 0;
 	for(int i=0; path_value[i] != '\0';i++){
@@ -18,15 +19,42 @@ int main(int argc, char *argv[]) {
 			no_of_path += 1;
 		}
 	}
-
 	char *paths[no_of_path];
+
 	int count = 0;
-	while(path_value != NULL){
-		char* path = strsep(&path_value, ":");
+	char *path_value_copy = malloc((strlen(path_value)+1) * sizeof(char*));
+	strcpy(path_value_copy, path_value);
+	while(path_value_copy != NULL){
+		char* path = strsep(&path_value_copy, ":");
 		paths[count] = (char*)malloc(sizeof(char)* strlen(path));
 		strcpy(paths[count], path);
 		count += 1;
 	}
+	free(path_value_copy);
+
+	for(int i=0;i<no_of_path;i++){
+		DIR *dir = opendir(paths[i]);
+		struct dirent *ent;
+		while((ent = readdir(dir))){
+			if(strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0){
+				continue;
+			}
+
+			char *full_path = (char*)malloc(PATH_MAX* sizeof(char));
+			snprintf(full_path, PATH_MAX, "%s/%s", paths[i], ent->d_name);
+			if(strcmp(input, ent->d_name) == 0 && access(full_path, X_OK) == 0){
+				closedir(dir);
+				return full_path;
+			}
+		}
+		closedir(dir);
+	}
+	return NULL;
+}
+
+int main(int argc, char *argv[]) {
+  // Flush after every printf
+	
 
 	char cmds[3][5] = {
 		"echo",
@@ -54,26 +82,10 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			if(isValid == 0){
-				for(int i=0;i<no_of_path;i++){
-					DIR *dir = opendir(paths[i]);
-					struct dirent *ent;
-					while((ent = readdir(dir))){
-						if(strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0){
-							continue;
-						}
-
-						char full_path[PATH_MAX];
-						snprintf(full_path, PATH_MAX, "%s/%s", paths[i], ent->d_name);
-						if(strcmp(input+5, ent->d_name) == 0 && access(full_path, X_OK) == 0){
-							printf("%s is %s\n", input+5, full_path);
-							isValid = 1;
-							break;
-						}
-					}
-
-					if(isValid == 1){
-						break;
-					}
+				char *path = get_inbuilt_cmd_path(input+5);
+				if(path != NULL){
+					printf("%s is %s\n", input+5, path);
+					isValid = 1;
 				}
 			}
 
@@ -81,7 +93,39 @@ int main(int argc, char *argv[]) {
 				printf("%s: not found\n",input+5);
 			}
 		}else {
-			printf("%s: command not found\n", input);
+			int count = 0;
+			char *cmd;
+			char *args[10];
+			char *input_copy = strdup(input);
+
+			while(input_copy != NULL){
+				char *value = strsep(&input_copy, " ");
+				if(value != NULL){
+					if(count == 0){
+						cmd = strdup(value);
+					}
+					args[count] = strdup(value);
+				}
+				count += 1;
+			}
+			free(input_copy);
+			args[count] = NULL;
+
+			char *path = get_inbuilt_cmd_path(cmd);
+			if(path == NULL){
+				printf("%s: command not found\n", input);
+			}else {
+				pid_t pid = fork();
+				if(pid == -1){
+					perror("Unable to execute process");
+					exit(EXIT_FAILURE);
+				}else if(pid == 0){
+					execv(path, args);
+					exit(EXIT_SUCCESS);
+				}else {
+					waitpid(pid, NULL ,0 );
+				}
+			}
 		}
 		free(input);
 	}
