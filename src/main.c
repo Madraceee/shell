@@ -56,6 +56,7 @@ int main(int argc, char *argv[]) {
   // Flush after every printf
 	
 
+	const int no_of_cmds = 4;
 	char cmds[4][5] = {
 		"echo",
 		"exit",
@@ -85,7 +86,7 @@ int main(int argc, char *argv[]) {
 			
 		}else if (strncmp(input,"type ",5) == 0) {
 			int isValid = 0;
-			for(int i=0;i<3;i++){
+			for(int i=0;i<no_of_cmds;i++){
 				if(strncmp(input+5, cmds[i], strlen(cmds[i]) ) == 0) {
 					printf("%s is a shell builtin\n", cmds[i]);
 					isValid = 1;
