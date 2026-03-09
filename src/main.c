@@ -56,10 +56,11 @@ int main(int argc, char *argv[]) {
   // Flush after every printf
 	
 
-	char cmds[3][5] = {
+	char cmds[4][5] = {
 		"echo",
 		"exit",
-		"type"
+		"type",
+		"pwd"
 	};
 	
   setbuf(stdout, NULL);
@@ -73,6 +74,15 @@ int main(int argc, char *argv[]) {
 			break;
 		}else if(strncmp(input,"echo ",5) == 0){
 			printf("%s\n", input + 5);
+		}else if (strlen(input) == 3 && strncmp(input, "pwd",3)){
+			char path[PATH_MAX];
+			char *val = getcwd(path, PATH_MAX);
+			if(val == NULL){
+				printf("Could not get present working directory\n");
+			}else {
+				printf("%s\n", path);
+			}
+			
 		}else if (strncmp(input,"type ",5) == 0) {
 			int isValid = 0;
 			for(int i=0;i<3;i++){
