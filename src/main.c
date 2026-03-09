@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
 			break;
 		}else if(strncmp(input,"echo ",5) == 0){
 			printf("%s\n", input + 5);
-		}else if (strlen(input) == 3 && strncmp(input, "pwd",3)){
+		}else if (strncmp(input, "pwd",3) == 0 && strlen(input) == 3){
 			char path[PATH_MAX];
 			char *val = getcwd(path, PATH_MAX);
 			if(val == NULL){
