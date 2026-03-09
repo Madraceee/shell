@@ -92,6 +92,9 @@ int main(int argc, char *argv[]) {
 				printf("cd: provide path\n");
 			}else{
 				char *path = strsep(&input, " ");
+				if(strcmp(path,"~") == 0){
+					path = getenv("HOME");
+				}
 				int result = chdir(path);
 				if(result != 0){
 					printf("cd: %s: No such file or directory\n",path);
