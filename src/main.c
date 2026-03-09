@@ -56,16 +56,18 @@ int main(int argc, char *argv[]) {
   // Flush after every printf
 	
 
-	const int no_of_cmds = 4;
-	char cmds[4][5] = {
+	const int no_of_cmds = 5;
+	char cmds[5][5] = {
 		"echo",
 		"exit",
 		"type",
-		"pwd"
+		"pwd",
+		"cd"
 	};
 	
   setbuf(stdout, NULL);
 	while(1){
+		// TODO: Get the cmd and args from input
 		char* input = (char*)malloc(sizeof(char) * 500);
 		// TODO: Uncomment the code below to pass the first stage
 		printf("$ ");
@@ -84,6 +86,17 @@ int main(int argc, char *argv[]) {
 				printf("%s\n", path);
 			}
 			
+		}else if (strncmp(input, "cd ", 3) == 0){
+			strsep(&input, " ");
+			if(input == NULL){
+				printf("cd: provide path\n");
+			}else{
+				char *path = strsep(&input, " ");
+				int result = chdir(path);
+				if(result != 0){
+					printf("cd: %s: No such file or directory\n",path);
+				}
+			}
 		}else if (strncmp(input,"type ",5) == 0) {
 			int isValid = 0;
 			for(int i=0;i<no_of_cmds;i++){
