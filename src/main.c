@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <dirent.h>
 #include <linux/limits.h>
 #include <stdio.h>
@@ -11,7 +12,10 @@
 enum STATE {
 	NORMAL,
 	SINGLE,
+	REDIRECT,
 };
+
+char* trim(char *str);
 
 char *get_inbuilt_cmd_path(char *input) {
 	char *path_value = getenv("PATH");
@@ -57,22 +61,28 @@ char *get_inbuilt_cmd_path(char *input) {
 	return NULL;
 }
 
-void echo(char input[]) {
-	enum STATE state = NORMAL;
+void echo(char **raw_arg, enum STATE *state) {
+	char *input = *raw_arg;
+	*state = NORMAL;
 	int len = strlen(input);
 	char *buf = (char *)malloc(sizeof(char) * 100);
 	buf[0] = '\0';
 	for (int i = 0; i < len; i++) {
+		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
+			*state = REDIRECT;
+			*raw_arg = &(*raw_arg)[i];
+			break;
+		}
 		if (strncmp(&input[i], "'", 1) == 0) {
 			if (state == NORMAL) {
-				state = SINGLE;
+				*state = SINGLE;
 			} else {
 				if (strlen(buf) > 0) {
 					printf("%s", buf);
 					buf = (char*)malloc(sizeof(char) * 100);
 					buf[0] = '\0';
 				}
-				state = NORMAL;
+				*state = NORMAL;
 			}
 			continue;
 		}
@@ -92,12 +102,13 @@ void echo(char input[]) {
 	printf("%s", buf);
 }
 
-int get_args(char *input, char *args[]) {
+int get_args(char **raw_arg, char *args[], enum STATE *state) {
+	char *input = *raw_arg;
 	if (input == NULL || strlen(input) == 0) {
 		return 0;
 	}
 
-	enum STATE state = NORMAL;
+	*state = NORMAL;
 	int len = strlen(input);
 
 	// MAX 100 args with each max length of 100
@@ -105,20 +116,25 @@ int get_args(char *input, char *args[]) {
 	char *buf = (char *)malloc(sizeof(char) * 100);
 	buf[0] = '\0';
 	for (int i = 0; i < len; i++) {
+		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
+			*state = REDIRECT;
+			*raw_arg = &(*raw_arg)[i];
+			break;
+		}
 		if (strncmp(&input[i], "'", 1) == 0) {
-			if (state == NORMAL) {
-				state = SINGLE;
+			if (*state == NORMAL) {
+				*state = SINGLE;
 			} else {
 				if (strlen(buf) > 0) {
 					args[no_of_args++] = strdup(buf);
 					buf = (char*)malloc(sizeof(char) * 100);
 					buf[0] = '\0';
 				}
-				state = NORMAL;
+				*state = NORMAL;
 			}
 			continue;
 		}
-		if (strncmp(&input[i], " ", 1) == 0 && state == NORMAL) {
+		if (strncmp(&input[i], " ", 1) == 0 && *state == NORMAL) {
 			if (strlen(buf) > 0) {
 				args[no_of_args++] = strdup(buf);
 				args[no_of_args++] = strdup(" ");
@@ -149,7 +165,10 @@ int main(int argc, char *argv[]) {
 	setbuf(stdout, NULL);
 	while (1) {
 		// TODO: Get the cmd and args from input
+		enum STATE *state = (enum STATE*)malloc(sizeof(enum STATE)*1);
 		char *input = (char *)malloc(sizeof(char) * 500);
+		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
+		output[0] = '\0';
 		printf("$ ");
 		fgets(input, 500, stdin);
 		input[strlen(input) - 1] = '\0';
@@ -159,31 +178,32 @@ int main(int argc, char *argv[]) {
 		char *cmd;
 		char *args[100];
 		cmd = strsep(&input, " ");
-		int no_of_args = get_args(input, args);
+
+		*state = NORMAL;
+		int no_of_args = get_args(&input, args, state);
 
 		if (strcmp(cmd, "exit") == 0) {
 			break;
-		} else if (strcmp(cmd, "echo") == 0) {
-			// TODO: Change input+5 to args
-			strsep(&input_copy, " ");
-			echo(strdup(input_copy));
-			// for (int i = 0; i < no_of_args; i++) {
-			// 	printf("%s", args[i]);
-			// }
-			printf("\n");
+		// }else if (strcmp(cmd, "echo") == 0) {
+		// 	// TODO: Change input+5 to args
+		// 	strsep(&input_copy, " ");
+		// 	echo(&strdup(input_copy),state);
+		// 	// for (int i = 0; i < no_of_args; i++) {
+		// 	// 	printf("%s", args[i]);
+		// 	// }
+		// 	printf("\n");
 		} else if (strcmp(cmd, "pwd") == 0) {
 			char path[PATH_MAX];
 			char *val = getcwd(path, PATH_MAX);
 			if (val == NULL) {
-				printf("Could not get present working directory\n");
+				output = "Could not get present working directory\n";
 			} else {
-				printf("%s\n", path);
+				sprintf(output,"%s\n", path);
 			}
 
 		} else if (strcmp(cmd, "cd") == 0) {
-			// TODO: Use args
 			if (no_of_args == 0) {
-				printf("cd: provide path\n");
+				output = "cd: provide path\n" ;
 			} else {
 				char *path = args[0];
 				if (strcmp(args[0], "~") == 0) {
@@ -191,27 +211,27 @@ int main(int argc, char *argv[]) {
 				}
 				int result = chdir(path);
 				if (result != 0) {
-					printf("cd: %s: No such file or directory\n", path);
+					sprintf(output, "cd: %s: No such file or directory\n", path);
 				}
 			}
 		} else if (strcmp(cmd, "type") == 0) {
 			int isValid = 0;
 			for (int i = 0; i < no_of_cmds; i++) {
 				if (strncmp(args[0], cmds[i], strlen(cmds[i])) == 0) {
-					printf("%s is a shell builtin\n", cmds[i]);
+					sprintf(output,"%s is a shell builtin\n", cmds[i]);
 					isValid = 1;
 				}
 			}
 			if (isValid == 0) {
-				char *path = get_inbuilt_cmd_path(input + 5);
+				char *path = get_inbuilt_cmd_path(args[0]);
 				if (path != NULL) {
-					printf("%s is %s\n", input + 5, path);
+					sprintf(output,"%s is %s\n", args[0], path);
 					isValid = 1;
 				}
 			}
 
 			if (isValid == 0) {
-				printf("%s: not found\n", input + 5);
+				sprintf(output,"%s: not found\n", input + 5);
 			}
 		} else {
 			int count = 0;
@@ -226,7 +246,7 @@ int main(int argc, char *argv[]) {
 			new_args[no_of_args + 1] = NULL;
 
 			if (path == NULL) {
-				printf("%s: command not found\n", input);
+				sprintf(output,"%s: command not found\n", input);
 			} else {
 				pid_t pid = fork();
 				if (pid == -1) {
@@ -240,11 +260,41 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
+		if(*state == REDIRECT){
+			strsep(&input, ">");
+			input = trim(input);
+			FILE *file = fopen(input, "w+");
+			fprintf(file, "%s", output);
+			fclose(file);
+		}else{
+			printf("%s", output);
+		}
+
 		for(int i=0;i<no_of_args;i++){
 			free(args[i]);
 		}
+		free(output);
 		free(input_ptr);
+		free(state);
 	}
 
 	return 0;
+}
+
+
+char* trim(char *str){
+	int i = 0;
+	int len = strlen(str);
+
+	while(i < len && isspace(str[i])){
+		i++;
+	}
+
+	if(i == len){
+		*str = '\0';
+		return str;
+	}
+
+	memmove(str, str+i, len-i+1);
+	return str;
 }
