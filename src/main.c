@@ -57,8 +57,40 @@ char *get_inbuilt_cmd_path(char *input) {
 	return NULL;
 }
 
-// NOTE: FAULTY
-// FIX IT ASAP
+void echo(char input[]) {
+	enum STATE state = NORMAL;
+	int len = strlen(input);
+	char *buf = (char *)malloc(sizeof(char) * 100);
+	buf[0] = '\0';
+	for (int i = 0; i < len; i++) {
+		if (strncmp(&input[i], "'", 1) == 0) {
+			if (state == NORMAL) {
+				state = SINGLE;
+			} else {
+				if (strlen(buf) > 0) {
+					printf("%s", buf);
+					buf = (char*)malloc(sizeof(char) * 100);
+					buf[0] = '\0';
+				}
+				state = NORMAL;
+			}
+			continue;
+		}
+		if (strncmp(&input[i], " ", 1) == 0 && state == NORMAL) {
+			if (strlen(buf) > 0) {
+				printf("%s", buf);
+				buf = (char*)malloc(sizeof(char) * 100);
+				buf[0] = '\0';
+			}
+			if(strncmp(&input[i-1]," ", 1) != 0){
+				printf(" ");
+			}
+			continue;
+		}
+		buf = strncat(buf, &input[i], 1);
+	}
+}
+
 int get_args(char *input, char *args[]) {
 	if (input == NULL || strlen(input) == 0) {
 		return 0;
@@ -119,8 +151,9 @@ int main(int argc, char *argv[]) {
 		char *input = (char *)malloc(sizeof(char) * 500);
 		printf("$ ");
 		fgets(input, 500, stdin);
-		char *input_copy = input;
 		input[strlen(input) - 1] = '\0';
+		char *input_ptr = input;
+		char *input_copy = strdup(input);
 
 		char *cmd;
 		char *args[100];
@@ -131,9 +164,11 @@ int main(int argc, char *argv[]) {
 			break;
 		} else if (strcmp(cmd, "echo") == 0) {
 			// TODO: Change input+5 to args
-			for (int i = 0; i < no_of_args; i++) {
-				printf("%s", args[i]);
-			}
+			strsep(&input_copy, " ");
+			echo(strdup(input_copy));
+			// for (int i = 0; i < no_of_args; i++) {
+			// 	printf("%s", args[i]);
+			// }
 			printf("\n");
 		} else if (strcmp(cmd, "pwd") == 0) {
 			char path[PATH_MAX];
@@ -207,7 +242,7 @@ int main(int argc, char *argv[]) {
 		for(int i=0;i<no_of_args;i++){
 			free(args[i]);
 		}
-		free(input_copy);
+		free(input_ptr);
 	}
 
 	return 0;
