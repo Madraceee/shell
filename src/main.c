@@ -89,6 +89,7 @@ void echo(char input[]) {
 		}
 		buf = strncat(buf, &input[i], 1);
 	}
+	printf("%s", buf);
 }
 
 int get_args(char *input, char *args[]) {
