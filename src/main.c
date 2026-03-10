@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
 			new_args[no_of_args + 1] = NULL;
 
 			if (path == NULL) {
-				sprintf(output,"%s: command not found\n", input);
+				sprintf(output,"%s: command not found\n", cmd);
 			} else {
 				pid_t pid = fork();
 				if (pid == -1) {
