@@ -15,6 +15,12 @@ enum STATE {
 	REDIRECT,
 };
 
+struct history{
+	char **stack;
+	int i;
+	int max;
+};
+
 char* trim(char *str);
 
 char *get_inbuilt_cmd_path(char *input) {
@@ -162,6 +168,13 @@ int main(int argc, char *argv[]) {
 	char cmds[6][8] = {"echo", "exit", "type", "pwd", "cd","history"};
 
 	setbuf(stdout, NULL);
+
+	// History
+	struct history history;
+	history.i = 0;
+	history.max = 100;
+	history.stack = (char**)malloc(sizeof(char*) *100);
+
 	while (1) {
 		// TODO: Get the cmd and args from input
 		enum STATE *state = (enum STATE*)malloc(sizeof(enum STATE)*1);
@@ -180,6 +193,8 @@ int main(int argc, char *argv[]) {
 
 		*state = NORMAL;
 		int no_of_args = get_args(&input, args, state);
+
+		history.stack[history.i++] = strdup(input_copy);
 
 		if (strcmp(cmd, "exit") == 0) {
 			break;
@@ -232,7 +247,13 @@ int main(int argc, char *argv[]) {
 			if (isValid == 0) {
 				sprintf(output,"%s: not found\n", args[0]);
 			}
-		} else {
+		} else if (strcmp(cmd, "history") == 0){
+			for(int i=0;i<history.i;i++){
+				char *line = (char*)malloc(sizeof(char)*strlen(history.stack[i]));
+				sprintf(line,"%d %s\n", i+1, history.stack[i] );
+				strcat(output, line);
+			}
+		}else {
 			int count = 0;
 			char *path = get_inbuilt_cmd_path(cmd);
 
