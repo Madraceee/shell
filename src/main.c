@@ -16,7 +16,7 @@ enum STATE {
 };
 
 struct history{
-	char **stack;
+	char *stack[100];
 	int i;
 	int max;
 };
@@ -173,7 +173,6 @@ int main(int argc, char *argv[]) {
 	struct history history;
 	history.i = 0;
 	history.max = 100;
-	history.stack = (char**)malloc(sizeof(char*) *100);
 
 	while (1) {
 		// TODO: Get the cmd and args from input
@@ -250,9 +249,8 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(cmd, "history") == 0){
 			for(int i=0;i<history.i;i++){
 				char *line = (char*)malloc(sizeof(char)*strlen(history.stack[i]));
-				sprintf(line,"%d %s\n", i+1, history.stack[i] );
+				sprintf(line,"%d %s\n", i+1, history.stack[i]);
 				strcat(output, line);
-				strcat(output, '\0');
 			}
 		}else {
 			int count = 0;
