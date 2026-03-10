@@ -137,7 +137,6 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 		if (strncmp(&input[i], " ", 1) == 0 && *state == NORMAL) {
 			if (strlen(buf) > 0) {
 				args[no_of_args++] = strdup(buf);
-				args[no_of_args++] = strdup(" ");
 				buf = (char*)malloc(sizeof(char) * 100);
 				buf[0] = '\0';
 			}
