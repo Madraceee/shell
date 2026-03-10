@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
 			if (isValid == 0) {
 				char *path = get_inbuilt_cmd_path(args[0]);
 				if (path != NULL) {
-					sprintf(output,"%s is %s\n", args[0], path);
+					sprintf(output,"\t%s is %s\n", args[0], path);
 					isValid = 1;
 				}
 			}
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 			}
 		} else if (strcmp(cmd, "history") == 0){
 			for(int i=0;i<history.i;i++){
-				char *line = (char*)malloc(sizeof(char)*strlen(history.stack[i]));
+				char *line = (char*)malloc(sizeof(char)*(strlen(history.stack[i])+10));
 				sprintf(line,"%d %s\n", i+1, history.stack[i]);
 				strcat(output, line);
 			}
