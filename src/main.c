@@ -252,6 +252,7 @@ int main(int argc, char *argv[]) {
 				char *line = (char*)malloc(sizeof(char)*strlen(history.stack[i]));
 				sprintf(line,"%d %s\n", i+1, history.stack[i] );
 				strcat(output, line);
+				strcat(output, '\0');
 			}
 		}else {
 			int count = 0;
