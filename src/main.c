@@ -159,8 +159,8 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 int main(int argc, char *argv[]) {
 	// Flush after every printf
 
-	const int no_of_cmds = 5;
-	char cmds[5][5] = {"echo", "exit", "type", "pwd", "cd"};
+	const int no_of_cmds = 6;
+	char cmds[6][8] = {"echo", "exit", "type", "pwd", "cd","history"};
 
 	setbuf(stdout, NULL);
 	while (1) {
@@ -231,7 +231,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			if (isValid == 0) {
-				sprintf(output,"%s: not found\n", input + 5);
+				sprintf(output,"%s: not found\n", args[0]);
 			}
 		} else {
 			int count = 0;
@@ -261,11 +261,14 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		if(*state == REDIRECT){
-			strsep(&input, ">");
-			input = trim(input);
-			FILE *file = fopen(input, "w+");
-			fprintf(file, "%s", output);
-			fclose(file);
+			if(strlen(output) != 0){
+				strsep(&input, ">");
+				input = trim(input);
+				FILE *file = fopen(input, "w+");
+				printf("%s\n",output);
+				fprintf(file, "%s", output);
+				fclose(file);
+			}
 		}else{
 			printf("%s", output);
 		}
@@ -286,7 +289,7 @@ char* trim(char *str){
 	int i = 0;
 	int len = strlen(str);
 
-	while(i < len && isspace(str[i])){
+	while(i < len && (isspace(str[i]) || strncmp(&str[i], "\"",1)==0 )){
 		i++;
 	}
 
