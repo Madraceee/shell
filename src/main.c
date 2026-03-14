@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
 	load(cmd_completion);
 
 	const int no_of_cmds = 6;
-	char cmds[6][10] = {"echo", "exit", "type", "pwd", "cd","history"};
+	char cmds[6][15] = {"echo", "exit", "type", "pwd", "cd","history"};
 	for(int i = 0;i<no_of_cmds;i++){
 		load_word(cmd_completion, cmds[i], 0);
 	}
