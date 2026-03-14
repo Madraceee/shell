@@ -93,7 +93,7 @@ void history_load(struct history* h, char* path){
 		output[0] = '\0';
 		fgets(output, PATH_MAX, file);
 	}
-	h->last_appended_history = h->i;
+	h->last_appended_history = h->i+1;
 	fclose(file);
 	free(output);
 }
