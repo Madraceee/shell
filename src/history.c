@@ -78,6 +78,9 @@ void history_down(struct history* h, char* input){
 
 void history_load(struct history* h, char* path){
 	FILE* file = fopen(path, "r");
+	if(file == NULL){
+		return;
+	}
 
 	char* output = (char*)malloc(sizeof(char)*PATH_MAX);
 	output[0]='\0';
@@ -96,6 +99,9 @@ void history_load(struct history* h, char* path){
 
 void history_save(struct history* h, char* path, char mode){
 	FILE* file = fopen(path,&mode);
+	if(file == NULL){
+		return;
+	}
 
 	for(int i=h->last_appended_history;i<=h->i;i++){
 		fprintf(file,"%s\n", h->stack[i]);
