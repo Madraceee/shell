@@ -29,7 +29,7 @@ char* get_history_all(struct history* h){
 char* get_history_limit(struct history* h, int limit){
 	char *output = (char*)malloc(sizeof(char) * (limit * PATH_MAX));
 	output[0] = '\0';
-	int i = h->i - limit;
+	int i = h->i - limit + 1;
 	if (i < 0 ) {
 		i = 0;
 	}
