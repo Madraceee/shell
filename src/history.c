@@ -10,6 +10,7 @@ struct history* new_history(int max){
 	history->ptr = 0;
 	history->max = max;
 	history->stack = (char**)malloc(sizeof(char*) * max);
+	history->last_appended_history = 0;
 	return history;
 }
 
@@ -87,8 +88,11 @@ void history_load(struct history* h, char* path){
 void history_save(struct history* h, char* path, char mode){
 	FILE* file = fopen(path,&mode);
 
-	for(int i=0;i<=h->i;i++){
+	for(int i=h->last_appended_history;i<=h->i;i++){
 		fprintf(file,"%s\n", h->stack[i]);
+	}
+	if(mode == 'a'){
+		h->last_appended_history = h->i+1;
 	}
 	fclose(file);
 }

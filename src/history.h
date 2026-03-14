@@ -12,6 +12,7 @@ struct history{
 	int i;
 	int max;
 	int ptr;
+	int last_appended_history;
 };
 
 
