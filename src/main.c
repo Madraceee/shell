@@ -27,7 +27,7 @@ void termios_cleanup(){
 }
 
 void history_cleanup(){
-	history_save(history, history->history_file_path, 'w');
+	history_save(history, history->history_file_path, 'a');
 }
 
 void termios_startup(){
