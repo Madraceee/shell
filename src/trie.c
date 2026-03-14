@@ -2,9 +2,11 @@
 
 struct trie* new_trie(){
 	struct trie *t = (struct trie*)malloc(sizeof(struct trie));
+	if(t == NULL){
+		exit(EXIT_FAILURE);
+	}
 	for(int i=0;i<255;i++){
-		struct trie* x = t->chars[i];
-		x = NULL;
+		t->chars[i] = NULL;
 	}
 	t->isValid = 0;
 	t->total_inputs = 0;
@@ -12,14 +14,14 @@ struct trie* new_trie(){
 }
 
 void load_word(struct trie *t, char *input, int i){
-	if(input == NULL || input[i] == '\0'){
+	if(i == strlen(input) || input == NULL || input[i] == '\0'){
 		return;
 	}
 	int pos = input[i];
 	if(t->chars[pos] == NULL){
 		t->chars[pos] = new_trie();
 	}
-	if(input[i+1] == '\0'){
+	if(i+1 == strlen(input)){
 		t->isValid = 1;
 		t->word = strdup(input);
 	}

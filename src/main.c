@@ -190,6 +190,10 @@ int main(int argc, char *argv[]) {
 
 	const int no_of_cmds = 6;
 	char cmds[6][8] = {"echo", "exit", "type", "pwd", "cd","history"};
+	for(int i = 0;i<no_of_cmds;i++){
+		load_word(cmd_completion, cmds[i], 0);
+	}
+	cmd_completion->total_inputs += no_of_cmds;
 
 	setbuf(stdout, NULL);
 
