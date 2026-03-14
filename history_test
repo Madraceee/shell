@@ -3,20 +3,3 @@ echo 2
 echo 3
 echo 5
 echo 6
-history -a history_test
-echo 5
-echo 6
-history -a history_test
-history -a history_test
-cat history_test
-echo 7
-echo 8
-echo 9
-history -a history_test
-echo 10
-history -a history_test
-history -a
-cat history_test
-echo 11
-echo 12
-history -a history_test
