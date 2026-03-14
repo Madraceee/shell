@@ -8,17 +8,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <wait.h>
+#include "history.h"
 
 enum STATE {
 	NORMAL,
 	SINGLE,
 	REDIRECT,
-};
-
-struct history{
-	char *stack[100];
-	int i;
-	int max;
 };
 
 char* trim(char *str);
@@ -170,9 +165,7 @@ int main(int argc, char *argv[]) {
 	setbuf(stdout, NULL);
 
 	// History
-	struct history history;
-	history.i = 0;
-	history.max = 100;
+	struct history *history = new_history(100);
 
 	while (1) {
 		// TODO: Get the cmd and args from input
@@ -193,7 +186,7 @@ int main(int argc, char *argv[]) {
 		*state = NORMAL;
 		int no_of_args = get_args(&input, args, state);
 
-		history.stack[history.i++] = strdup(input_copy);
+		insert_record(history, strdup(input_copy));
 
 		if (strcmp(cmd, "exit") == 0) {
 			break;
@@ -247,10 +240,12 @@ int main(int argc, char *argv[]) {
 				sprintf(output,"%s: not found\n", args[0]);
 			}
 		} else if (strcmp(cmd, "history") == 0){
-			for(int i=0;i<history.i;i++){
-				char *line = (char*)malloc(sizeof(char)*(strlen(history.stack[i])+20));
-				sprintf(line,"\t%d %s\n", i+1, history.stack[i]);
-				strcat(output, line);
+			free(output);
+			if(no_of_args > 0){
+				int limit = atoi(args[0]);
+				output = get_history_limit(history, limit);
+			}else{
+				output = get_history_all(history);
 			}
 		}else {
 			int count = 0;
