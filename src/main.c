@@ -173,10 +173,6 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 	if (strlen(buf) > 0) {
 		args[no_of_args++] = strdup(buf);
 	}
-	// printf("No of args:%d\n", no_of_args);
-	// for(int i=0;i<no_of_args;i++){
-	// 	printf("%s\n", args[i]);
-	// }
 	return no_of_args;
 }
 
@@ -202,7 +198,6 @@ int main(int argc, char *argv[]) {
 	atexit(history_cleanup);
 
 	while (1) {
-		// TODO: Get the cmd and args from input
 		enum STATE *state = (enum STATE*)malloc(sizeof(enum STATE)*1);
 		char *input = (char *)malloc(sizeof(char) * 500);
 		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
@@ -241,6 +236,8 @@ int main(int argc, char *argv[]) {
 						for(int i=0;i<no_of_completions;i++){
 							printf("%s\t", completions[no_of_completions]);
 						}
+					}else{
+						printf("\a");
 					}
 
 					free(completions);
