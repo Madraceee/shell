@@ -291,8 +291,17 @@ int main(int argc, char *argv[]) {
 		} else if (strcmp(cmd, "history") == 0){
 			free(output);
 			if(no_of_args > 0){
-				int limit = atoi(args[0]);
-				output = get_history_limit(history, limit);
+				if(strcmp(args[0],"-r") == 0){
+					if(no_of_args == 1){
+						output = strdup("Enter path\n");
+					}else{
+						history_load(history, args[1]);
+						continue;
+					}
+				}else{
+					int limit = atoi(args[0]);
+					output = get_history_limit(history, limit);
+				}
 			}else{
 				output = get_history_all(history);
 			}

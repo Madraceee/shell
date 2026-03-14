@@ -1,4 +1,8 @@
 #include "history.h"
+#include <linux/limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct history* new_history(int max){
 	struct history *history = (struct history*)malloc(sizeof(struct history));
@@ -60,4 +64,21 @@ void history_down(struct history* h, char* input){
 	printf("\r\033[2K$ %s", h->stack[h->ptr]);
 	strcpy(input, h->stack[h->ptr]);
 	fflush(stdout);
+}
+
+void history_load(struct history* h, char* path){
+	FILE* file = fopen(path, "r");
+
+	char* output = (char*)malloc(sizeof(char)*PATH_MAX);
+	output[0]='\0';
+	fgets(output, PATH_MAX, file);
+	while(output[0] != '\0'){
+		output[strlen(output)-1] = '\0';
+		insert_record(h, output);
+
+		output = (char*)malloc(sizeof(char)*PATH_MAX);
+		output[0] = '\0';
+		fgets(output, PATH_MAX, file);
+	}
+	free(output);
 }

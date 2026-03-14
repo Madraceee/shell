@@ -21,4 +21,4 @@ char* get_history_all(struct history* h);
 char* get_history_limit(struct history* h, int limit);
 void history_up(struct history* h, char* input);
 void history_down(struct history* h, char* input);
-void history_ptr_reset(struct history* h);
+void history_load(struct history* h, char* path);
