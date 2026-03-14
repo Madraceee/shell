@@ -298,6 +298,13 @@ int main(int argc, char *argv[]) {
 						history_load(history, args[1]);
 						continue;
 					}
+				}else if(strcmp(args[0],"-w") == 0){
+					if(no_of_args == 1){
+						output = strdup("Enter path\n");
+					}else{
+						history_save(history, args[1]);
+						continue;
+					}
 				}else{
 					int limit = atoi(args[0]);
 					output = get_history_limit(history, limit);

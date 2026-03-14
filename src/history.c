@@ -80,5 +80,15 @@ void history_load(struct history* h, char* path){
 		output[0] = '\0';
 		fgets(output, PATH_MAX, file);
 	}
+	fclose(file);
 	free(output);
+}
+
+void history_save(struct history* h, char* path){
+	FILE* file = fopen(path,"w+");
+
+	for(int i=0;i<=h->i;i++){
+		fprintf(file,"%s\n", h->stack[i]);
+	}
+	fclose(file);
 }
