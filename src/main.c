@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
 		insert_record(history, strdup(input_copy));
 
 		if (strcmp(cmd, "exit") == 0) {
-			break;
+			return 0;
 		// }else if (strcmp(cmd, "echo") == 0) {
 		// 	// TODO: Change input+5 to args
 		// 	strsep(&input_copy, " ");

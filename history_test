@@ -10,3 +10,12 @@ echo 9
 exit
 asda
 exit
+exit
+echo 9
+exit
+echo 1
+exit
+invalid_command
+exit
+invlid_blueberry_command
+exit
