@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
 
 					if(no_of_completions == 1){
 						input = completions[0];
+						strcat(input, " ");
 						input_count = strlen(input);
 						printf("\r\033[2K$ %s", input);
 					}else if(no_of_completions != 0){
