@@ -288,6 +288,7 @@ int main(int argc, char *argv[]) {
 				}
 			}
 			input[input_count++] = chr;
+			is_tab_pressed = 0;
 			putc(chr, stdout);
 		}
 		input[input_count] = '\0';
