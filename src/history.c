@@ -84,8 +84,8 @@ void history_load(struct history* h, char* path){
 	free(output);
 }
 
-void history_save(struct history* h, char* path){
-	FILE* file = fopen(path,"w+");
+void history_save(struct history* h, char* path, char mode){
+	FILE* file = fopen(path,&mode);
 
 	for(int i=0;i<=h->i;i++){
 		fprintf(file,"%s\n", h->stack[i]);

@@ -1,3 +1,15 @@
 echo 1
 echo 2
 echo 3
+echo 5
+echo 6
+history -r history_test
+echo 1
+echo 2
+echo 3
+cat history_test
+echo 3
+echo 6
+clear
+history
+history -a history_test

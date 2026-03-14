@@ -298,11 +298,12 @@ int main(int argc, char *argv[]) {
 						history_load(history, args[1]);
 						continue;
 					}
-				}else if(strcmp(args[0],"-w") == 0){
+				}else if(strcmp(args[0],"-w") == 0 || strcmp(args[0],"-a") == 0){
 					if(no_of_args == 1){
 						output = strdup("Enter path\n");
 					}else{
-						history_save(history, args[1]);
+						char mode = args[0][1];
+						history_save(history, args[1], mode);
 						continue;
 					}
 				}else{
