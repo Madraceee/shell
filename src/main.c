@@ -8,8 +8,9 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <wait.h>
-#include "history.h"
 #include <termios.h>
+#include "history.h"
+#include "trie.h"
 
 struct termios org_trm;
 struct history* history;
@@ -181,6 +182,11 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 
 int main(int argc, char *argv[]) {
 	termios_startup();
+	
+	// Command Completion
+	struct trie* cmd_completion = new_trie();
+	// printf("Here\n");
+	load(cmd_completion);
 
 	const int no_of_cmds = 6;
 	char cmds[6][8] = {"echo", "exit", "type", "pwd", "cd","history"};
@@ -212,6 +218,27 @@ int main(int argc, char *argv[]) {
 					printf("\b \b");
 					fflush(stdout);
 					input_count--;
+				}
+				continue;
+			}
+			if(chr == 9){
+				if(input_count > 0){
+					char **completions;
+					input[input_count] = '\0';
+					int no_of_completions =  get_completion(cmd_completion, input, &completions);
+
+					if(no_of_completions == 1){
+						input = completions[0];
+						input_count = strlen(input);
+						printf("\r\033[2K$ %s", input);
+					}else if(no_of_completions != 0){
+						printf("\n");
+						for(int i=0;i<no_of_completions;i++){
+							printf("%s\t", completions[no_of_completions]);
+						}
+					}
+
+					free(completions);
 				}
 				continue;
 			}
