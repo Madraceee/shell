@@ -181,11 +181,10 @@ int main(int argc, char *argv[]) {
 	
 	// Command Completion
 	struct trie* cmd_completion = new_trie();
-	// printf("Here\n");
 	load(cmd_completion);
 
 	const int no_of_cmds = 6;
-	char cmds[6][8] = {"echo", "exit", "type", "pwd", "cd","history"};
+	char cmds[6][10] = {"echo", "exit", "type", "pwd", "cd","history"};
 	for(int i = 0;i<no_of_cmds;i++){
 		load_word(cmd_completion, cmds[i], 0);
 	}
@@ -236,6 +235,29 @@ int main(int argc, char *argv[]) {
 						printf("\a");
 						if(is_tab_pressed == 0){
 							is_tab_pressed = 1;
+
+							int is_all_matching = 1;
+							int i=0;
+							while(1){
+								char c = completions[0][i];
+								for(int j=0;j<no_of_completions;j++){
+									if(i >= strlen(completions[j]) || completions[j][i] != c){
+										is_all_matching = 0;
+										break;
+									}
+								}
+								if(is_all_matching == 0){
+									break;
+								}
+								i++;
+							}
+							if(i>input_count){
+								strncpy(input, completions[0], i);
+								input_count = strlen(input);
+								printf("\n$ %s",input);
+								fflush(stdout);
+								is_tab_pressed = 0;
+							}
 						}else{
 							printf("\n");
 							for(int i=0;i<no_of_completions;i++){

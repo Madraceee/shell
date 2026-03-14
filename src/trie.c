@@ -1,4 +1,5 @@
 #include "trie.h"
+#include <string.h>
 
 struct trie* new_trie(){
 	struct trie *t = (struct trie*)malloc(sizeof(struct trie));
@@ -21,11 +22,12 @@ void load_word(struct trie *t, char *input, int i){
 	if(t->chars[pos] == NULL){
 		t->chars[pos] = new_trie();
 	}
-	if(i+1 == strlen(input)){
+	t = t->chars[pos];
+	if(i == strlen(input)-1){
 		t->isValid = 1;
 		t->word = strdup(input);
 	}
-	return load_word(t->chars[pos], input, i+1);
+	return load_word(t, input, i+1);
 }
 
 void load(struct trie *t){
