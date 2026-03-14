@@ -9,9 +9,6 @@
 #include <unistd.h>
 #include <wait.h>
 #include "history.h"
-#include <termios.h>
-
-struct termios org_trm;
 
 enum STATE {
 	NORMAL,
@@ -20,21 +17,6 @@ enum STATE {
 };
 
 char* trim(char *str);
-
-void termios_cleanup(){
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &org_trm);
-}
-
-void termios_startup(){
-	tcgetattr(STDIN_FILENO, &org_trm);
-	atexit(termios_cleanup);
-
-	struct termios raw;
-	tcgetattr(STDIN_FILENO, &raw);
-	raw.c_lflag &= ~( ICANON | ECHO);
-	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
-}
-
 
 char *get_inbuilt_cmd_path(char *input) {
 	char *path_value = getenv("PATH");
@@ -175,7 +157,7 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 }
 
 int main(int argc, char *argv[]) {
-	termios_startup();
+	// Flush after every printf
 
 	const int no_of_cmds = 6;
 	char cmds[6][8] = {"echo", "exit", "type", "pwd", "cd","history"};
@@ -195,36 +177,11 @@ int main(int argc, char *argv[]) {
 		printf("$ ");
 		int input_count = 0;
 		while(1){
-			char chr;
-			read(STDIN_FILENO, &chr, 1);
-			if(chr == '\n'){
-				putc('\n', stdout);
-				break;
-			}
-			if(chr == 127){
-				if (input_count > 0) {
-					printf("\b \b");
-					fflush(stdout);
-					input_count--;
-				}
-				continue;
-			}
-			if(chr == '['){
-				read(STDIN_FILENO, &chr, 1);
-				if(chr == 'A'){
-					history_up(history, input);
-					input_count = strlen(input);
-					continue;
-				}else if(chr == 'B'){
-					history_down(history, input);
-					input_count = strlen(input);
-					continue;
-				}
-			}
-			input[input_count++] = chr;
-			putc(chr, stdout);
+			char *chr = (char*)malloc(sizeof(char));
+			fgets(chr, 2, stdin);
+			printf("%s\n", chr);
 		}
-		input[input_count] = '\0';
+		input[strlen(input) - 1] = '\0';
 		char *input_ptr = input;
 		char *input_copy = strdup(input);
 

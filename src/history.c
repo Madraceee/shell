@@ -3,6 +3,7 @@
 struct history* new_history(int max){
 	struct history *history = (struct history*)malloc(sizeof(struct history));
 	history->i = 0;
+	history->ptr = -1;
 	history->max = max;
 	history->stack = (char**)malloc(sizeof(char*) * max);
 	return history;
@@ -10,6 +11,8 @@ struct history* new_history(int max){
 
 void insert_record(struct history* h, char* record){
 	h->stack[h->i++] = record;
+	h->ptr = h->i-1;
+	history_ptr_reset(h);
 }
 
 char* get_history_all(struct history* h){
@@ -36,4 +39,33 @@ char* get_history_limit(struct history* h, int limit){
 		strcat(output, line);
 	}
 	return output;
+}
+
+void history_up(struct history* h, char* input){
+	if(h->ptr < 0){
+		return;
+	}
+	printf("\r\033[2K$ %s", h->stack[h->ptr]);
+	strcpy(input, h->stack[h->ptr]);
+	if(h->ptr > 0){
+		h->ptr--;
+	}
+	fflush(stdout);
+}
+
+
+void history_down(struct history* h, char* input){
+	if(h-> ptr == -1){
+		return;
+	}
+	printf("\r\033[2K$ %s", h->stack[h->ptr]);
+	strcpy(input, h->stack[h->ptr]);
+	if(h->ptr < h->i-1){
+		h->ptr++;
+	}
+	fflush(stdout);
+}
+
+void history_ptr_reset(struct history* h){
+	h->ptr = h->i - 1;
 }
