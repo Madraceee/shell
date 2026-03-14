@@ -201,6 +201,7 @@ int main(int argc, char *argv[]) {
 		enum STATE *state = (enum STATE*)malloc(sizeof(enum STATE)*1);
 		char *input = (char *)malloc(sizeof(char) * 500);
 		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
+		int is_tab_pressed = 0;
 		output[0] = '\0';
 
 		printf("$ ");
@@ -232,9 +233,17 @@ int main(int argc, char *argv[]) {
 						input_count = strlen(input);
 						printf("\r\033[2K$ %s", input);
 					}else if(no_of_completions != 0){
-						printf("\n");
-						for(int i=0;i<no_of_completions;i++){
-							printf("%s\t", completions[no_of_completions]);
+						printf("\a");
+						if(is_tab_pressed == 0){
+							is_tab_pressed = 1;
+						}else{
+							printf("\n");
+							for(int i=0;i<no_of_completions;i++){
+								printf("%s  ", completions[i]);
+							}
+							printf("\n$ %s",input);
+							fflush(stdout);
+							is_tab_pressed = 0;
 						}
 					}else{
 						printf("\a");

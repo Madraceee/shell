@@ -73,7 +73,6 @@ void load(struct trie *t){
 void finish_completion(struct trie* t, char **output, int *output_count){
 	if(t->isValid == 1){
 		output[*output_count] = strdup(t->word);
-		// printf("%s\n", output[*output_count]);
 		*output_count += 1;
 	}
 	
