@@ -11,9 +11,12 @@ struct history* new_history(int max){
 	history->max = max;
 	history->stack = (char**)malloc(sizeof(char*) * max);
 	history->last_appended_history = 0;
+	history->history_file_path = NULL;
+
 
 	char* path = getenv("HISTFILE");
 	if(path != NULL){
+		history->history_file_path = path;
 		history_load(history, path);
 	}
 

@@ -12,6 +12,7 @@
 #include <termios.h>
 
 struct termios org_trm;
+struct history* history;
 
 enum STATE {
 	NORMAL,
@@ -23,6 +24,10 @@ char* trim(char *str);
 
 void termios_cleanup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &org_trm);
+}
+
+void history_cleanup(){
+	history_save(history, history->history_file_path, 'w');
 }
 
 void termios_startup(){
@@ -183,7 +188,8 @@ int main(int argc, char *argv[]) {
 	setbuf(stdout, NULL);
 
 	// History
-	struct history *history = new_history(100);
+	history = new_history(100);
+	atexit(history_cleanup);
 
 	while (1) {
 		// TODO: Get the cmd and args from input

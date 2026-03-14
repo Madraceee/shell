@@ -13,6 +13,7 @@ struct history{
 	int max;
 	int ptr;
 	int last_appended_history;
+	char *history_file_path;
 };
 
 
