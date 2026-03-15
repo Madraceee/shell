@@ -1,6 +1,4 @@
 #include "built-in.h"
-#include <stdio.h>
-#include <string.h>
 
 void cd(int argc, char **argv, char** output) {
 	if (argc == 0) {
@@ -148,54 +146,12 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output){
 	}
 }
 
-
-void echo(char *args, char** output_temp){
-	int i=0;
-	char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
-	int output_count=0;
-	int len = strlen(args);
-	enum STATE state = NORMAL;
-
-	// Remove cmd
-	strsep(&args, " ");
-
-	// Trim leading whitespaces
-	while(i<len && isspace(args[i])){
-		i++;
-	}
-	if(i == len){
-		output[0] = '\0';
-		return;
-	}
-
-	for(;i<len;i++){
-		if(args[i] == '\''){
-			if(state == NORMAL){
-				state = SINGLE;
-				continue;
-			}else if(state == SINGLE) {
-				state = NORMAL;
-				continue;
-			}
-		}else if(args[i] == '\"'){
-			if(state == NORMAL){
-				state = DOUBLE;
-				continue;
-			}else if(state == DOUBLE){
-				state = NORMAL;
-				continue;
-			}
-		}else if(args[i] == ' '){
-			if(state == NORMAL){
-				if(args[i-1] == ' '){
-					continue;
-				}
-			}
+void echo(int argc, char **argv,char **output){
+	for(int i=0;i<argc;i++){
+		strcat(*output, argv[i]);
+		if(i < argc-1){
+			strcat(*output, " ");
 		}
-		output[output_count++] = args[i];
 	}
-	strcat(output, "\n");
-
-	*output_temp = strdup(output);
-	free(output);
+	strcat(*output, "\n");
 }

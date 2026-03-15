@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
 		if (strcmp(cmd, "exit") == 0) {
 			return 0;
 		}else if (strcmp(cmd, "echo") == 0) {
-			echo(input_copy, &output);
+			echo(no_of_args, args, &output);
 		} else if (strcmp(cmd, "pwd") == 0) {
 			pwd(no_of_args, args, &output);
 		} else if (strcmp(cmd, "cd") == 0) {
@@ -198,7 +198,6 @@ int main(int argc, char *argv[]) {
 				strsep(&input, ">");
 				input = trim(input);
 				FILE *file = fopen(input, "w+");
-				printf("%s\n",output);
 				fprintf(file, "%s", output);
 				fclose(file);
 			}
@@ -223,7 +222,7 @@ char* trim(char *str){
 	int i = 0;
 	int len = strlen(str);
 
-	while(i < len && (isspace(str[i]) || strncmp(&str[i], "\"",1)==0 )){
+	while(i < len && (isblank(str[i])!=0 )){
 		i++;
 	}
 
@@ -244,43 +243,62 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 
 	*state = NORMAL;
 	int len = strlen(input);
+	input = trim(input);
 
-	// MAX 100 args with each max length of 100
-	int no_of_args = 0;
-	char *buf = (char *)malloc(sizeof(char) * 100);
-	buf[0] = '\0';
+	char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
+	char output_count = 0;
 	for (int i = 0; i < len; i++) {
 		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
 			*state = REDIRECT;
 			*raw_arg = &(*raw_arg)[i];
 			break;
 		}
-		if (strncmp(&input[i], "'", 1) == 0) {
-			if (*state == NORMAL) {
+		if(input[i] == '\''){
+			if(*state == NORMAL){
 				*state = SINGLE;
-			} else {
-				if (strlen(buf) > 0) {
-					args[no_of_args++] = strdup(buf);
-					buf = (char*)malloc(sizeof(char) * 100);
-					buf[0] = '\0';
-				}
+				continue;
+			}else if(*state == SINGLE) {
 				*state = NORMAL;
+				continue;
 			}
-			continue;
-		}
-		if (strncmp(&input[i], " ", 1) == 0 && *state == NORMAL) {
-			if (strlen(buf) > 0) {
-				args[no_of_args++] = strdup(buf);
-				buf = (char*)malloc(sizeof(char) * 100);
-				buf[0] = '\0';
+		}else if(input[i] == '\"'){
+			if(*state == NORMAL){
+				*state = DOUBLE;
+				continue;
+			}else if(*state == DOUBLE){
+				*state = NORMAL;
+				continue;
 			}
-			continue;
+		}else if(input[i] == ' '){
+			if(*state == NORMAL){
+				if(input[i-1] == ' '){
+					continue;
+				}
+			}else {
+				output[output_count++] = '\a';
+				continue;
+			}
 		}
-		buf = strncat(buf, &input[i], 1);
+
+		output[output_count++] = input[i];
+	
+	}
+	output[output_count] = '\0';
+
+	int no_of_args = 0;
+	while(output != NULL){
+		char *word = strsep(&output, " ");
+		args[no_of_args++] = strdup(word);
 	}
 
-	if (strlen(buf) > 0) {
-		args[no_of_args++] = strdup(buf);
+	for(int i=0;i<no_of_args;i++){
+		int j=0;
+		for(;args[i][j] != '\0';j++){
+			if(args[i][j] == '\a'){
+				args[i][j] = ' ';
+			}
+		}
 	}
+
 	return no_of_args;
 }

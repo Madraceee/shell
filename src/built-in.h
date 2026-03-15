@@ -21,4 +21,4 @@ char *get_inbuilt_cmd_path(char *input);
 void pwd(int argc, char **argv, char** output);
 int history_cmd(int argc, char **argv, char** output, struct history* history);
 void exec_cmd(int argc, char* cmd,char **argv, char** output);
-void echo(char *args, char **output);
+void echo(int argc, char **argv,char **output);
