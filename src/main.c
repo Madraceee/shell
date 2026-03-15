@@ -292,8 +292,10 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 				output[output_count++] = '\a';
 				continue;
 			}
-		}else if(input[i-1] == '\\' ){
-			output_count -= 1;
+		}else if(input[i-1] == '\\'){
+			if(input[i] != '\\'){
+				output_count -= 1;
+			}
 		}
 
 		output[output_count++] = input[i];
