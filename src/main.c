@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
 				fclose(file);
 			}
 		}else if(*state == REDIRECT_FAILURE){
-			if(strlen(output) != 0){
+			if(strlen(error) != 0){
 				strsep(&input, ">");
 				input = trim(input);
 				FILE *file = fopen(input, "w+");
