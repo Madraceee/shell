@@ -266,7 +266,7 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 				}
 			}
 		}else if(input[i] == '\"'){
-			if(input[i-1] == '\\'){
+			if(input[i-1] == '\\' && *state != SINGLE){
 				output_count -= 1;
 			}else{
 				if(*state == NORMAL){
@@ -278,7 +278,7 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 				}
 			}
 		}else if(input[i] == ' ' ){
-			if(input[i-1] == '\\'){
+			if(input[i-1] == '\\' && *state != SINGLE){
 				input[i] = '\a';
 				output_count -= 1;
 				output[output_count++] = '\a';
@@ -293,7 +293,7 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 				continue;
 			}
 		}else if(input[i-1] == '\\'){
-			if(input[i] != '\\'){
+			if(input[i] != '\\' && *state != SINGLE){
 				output_count -= 1;
 			}
 		}
