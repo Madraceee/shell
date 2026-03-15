@@ -12,7 +12,7 @@ enum STATE {
 	NORMAL,
 	SINGLE,
 	DOUBLE,
-	REDIRECT,
+	REDIRECT_SUCCESS,
 };
 
 void cd(int argc, char **argv, char** output);

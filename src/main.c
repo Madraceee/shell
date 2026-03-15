@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 		}else {
 			exec_cmd(no_of_args, cmd, args, &output);
 		}
-		if(*state == REDIRECT){
+		if(*state == REDIRECT_SUCCESS){
 			if(strlen(output) != 0){
 				strsep(&input, ">");
 				input = trim(input);
@@ -247,8 +247,9 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 	char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
 	char output_count = 0;
 	for (int i = 0; i < len; i++) {
-		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
-			*state = REDIRECT;
+		if (input[i-1] == ' ' && (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0)){
+			output_count -= 1;
+			*state = REDIRECT_SUCCESS;
 			*raw_arg = &(*raw_arg)[i];
 			break;
 		}

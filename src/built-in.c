@@ -1,4 +1,7 @@
 #include "built-in.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
 void cd(int argc, char **argv, char** output) {
 	if (argc == 0) {
@@ -133,6 +136,15 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output){
 	if (path == NULL) {
 		sprintf(*output,"%s: command not found\n", cmd);
 	} else {
+		int fileids[2];
+		if(pipe(fileids) == -1){
+			perror("Unable to execute process");
+			exit(EXIT_FAILURE);
+		}
+		int saved_stdout = dup(STDOUT_FILENO);
+		dup2(fileids[1], STDOUT_FILENO);
+		*output[0] = '\0';
+
 		pid_t pid = fork();
 		if (pid == -1) {
 			perror("Unable to execute process");
@@ -143,6 +155,18 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output){
 		} else {
 			waitpid(pid, NULL, 0);
 		}
+		dup2(saved_stdout, STDOUT_FILENO);
+		close(fileids[1]);
+
+		char buf[100];
+		while(1){
+			int n = read(fileids[0],buf,100);
+			if(n == 0){
+				break;
+			}
+			strncat(*output, buf,n);
+		}
+		strcat(*output, "\0");
 	}
 }
 
