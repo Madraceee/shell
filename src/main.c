@@ -11,17 +11,13 @@
 #include <termios.h>
 #include "history.h"
 #include "trie.h"
+#include "built-in.h"
 
 struct termios org_trm;
 struct history* history;
 
-enum STATE {
-	NORMAL,
-	SINGLE,
-	REDIRECT,
-};
-
 char* trim(char *str);
+int get_args(char **raw_arg, char *args[], enum STATE *state);
 
 void termios_cleanup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &org_trm);
@@ -42,51 +38,7 @@ void termios_startup(){
 }
 
 
-char *get_inbuilt_cmd_path(char *input) {
-	char *path_value = getenv("PATH");
-	if (path_value == NULL) {
-		return NULL;
-	}
-	int no_of_path = 0;
-	for (int i = 0; path_value[i] != '\0'; i++) {
-		if (path_value[i] == ':') {
-			no_of_path += 1;
-		}
-	}
-	char *paths[no_of_path];
-
-	int count = 0;
-	char *path_value_copy = malloc((strlen(path_value) + 1) * sizeof(char *));
-	strcpy(path_value_copy, path_value);
-	while (path_value_copy != NULL) {
-		char *path = strsep(&path_value_copy, ":");
-		paths[count] = (char *)malloc(sizeof(char) * strlen(path));
-		strcpy(paths[count], path);
-		count += 1;
-	}
-	free(path_value_copy);
-
-	for (int i = 0; i < no_of_path; i++) {
-		DIR *dir = opendir(paths[i]);
-		struct dirent *ent;
-		while ((ent = readdir(dir))) {
-			if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
-				continue;
-			}
-
-			char *full_path = (char *)malloc(PATH_MAX * sizeof(char));
-			snprintf(full_path, PATH_MAX, "%s/%s", paths[i], ent->d_name);
-			if (strcmp(input, ent->d_name) == 0 && access(full_path, X_OK) == 0) {
-				closedir(dir);
-				return full_path;
-			}
-		}
-		closedir(dir);
-	}
-	return NULL;
-}
-
-void echo(char **raw_arg, enum STATE *state) {
+void echo_tmep(char **raw_arg, enum STATE *state) {
 	char *input = *raw_arg;
 	*state = NORMAL;
 	int len = strlen(input);
@@ -127,70 +79,29 @@ void echo(char **raw_arg, enum STATE *state) {
 	printf("%s", buf);
 }
 
-int get_args(char **raw_arg, char *args[], enum STATE *state) {
-	char *input = *raw_arg;
-	if (input == NULL || strlen(input) == 0) {
-		return 0;
-	}
-
-	*state = NORMAL;
-	int len = strlen(input);
-
-	// MAX 100 args with each max length of 100
-	int no_of_args = 0;
-	char *buf = (char *)malloc(sizeof(char) * 100);
-	buf[0] = '\0';
-	for (int i = 0; i < len; i++) {
-		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
-			*state = REDIRECT;
-			*raw_arg = &(*raw_arg)[i];
-			break;
-		}
-		if (strncmp(&input[i], "'", 1) == 0) {
-			if (*state == NORMAL) {
-				*state = SINGLE;
-			} else {
-				if (strlen(buf) > 0) {
-					args[no_of_args++] = strdup(buf);
-					buf = (char*)malloc(sizeof(char) * 100);
-					buf[0] = '\0';
-				}
-				*state = NORMAL;
-			}
-			continue;
-		}
-		if (strncmp(&input[i], " ", 1) == 0 && *state == NORMAL) {
-			if (strlen(buf) > 0) {
-				args[no_of_args++] = strdup(buf);
-				buf = (char*)malloc(sizeof(char) * 100);
-				buf[0] = '\0';
-			}
-			continue;
-		}
-		buf = strncat(buf, &input[i], 1);
-	}
-
-	if (strlen(buf) > 0) {
-		args[no_of_args++] = strdup(buf);
-	}
-	return no_of_args;
-}
-
 int main(int argc, char *argv[]) {
+	// Terminal Startup
 	termios_startup();
+	setbuf(stdout, NULL);
 	
 	// Command Completion
 	struct trie* cmd_completion = new_trie();
 	load(cmd_completion);
 
 	const int no_of_cmds = 6;
-	char cmds[6][15] = {"echo", "exit", "type", "pwd", "cd","history"};
+	char **cmds = (char**)malloc(sizeof(char*)*no_of_cmds);
+	cmds[0] = "echo";
+	cmds[1] = "exit";
+	cmds[2] = "type";
+	cmds[3] = "pwd";
+	cmds[4] = "cd";
+	cmds[5] = "history";
+	// char *cmds[] = {"echo", "exit", "type", "pwd", "cd","history"};
 	for(int i = 0;i<no_of_cmds;i++){
 		load_word(cmd_completion, cmds[i], 0);
 	}
 	cmd_completion->total_inputs += no_of_cmds;
 
-	setbuf(stdout, NULL);
 
 	// History
 	history = new_history(100);
@@ -220,7 +131,7 @@ int main(int argc, char *argv[]) {
 				}
 				continue;
 			}
-			if(chr == 9){
+			if(chr == '\t'){
 				if(input_count > 0){
 					char **completions;
 					input[input_count] = '\0';
@@ -239,6 +150,9 @@ int main(int argc, char *argv[]) {
 							int is_all_matching = 1;
 							int i=0;
 							while(1){
+								if(i >= strlen(completions[0])){
+									break;
+								}
 								char c = completions[0][i];
 								for(int j=0;j<no_of_completions;j++){
 									if(i >= strlen(completions[j]) || completions[j][i] != c){
@@ -253,7 +167,8 @@ int main(int argc, char *argv[]) {
 							}
 							if(i>input_count){
 								strncpy(input, completions[0], i);
-								input_count = strlen(input);
+								input[i] = '\0';
+								input_count = i;
 								printf("\n$ %s",input);
 								fflush(stdout);
 								is_tab_pressed = 0;
@@ -303,109 +218,22 @@ int main(int argc, char *argv[]) {
 		int no_of_args = get_args(&input, args, state);
 
 		insert_record(history, strdup(input_copy));
-
 		if (strcmp(cmd, "exit") == 0) {
 			return 0;
-		// }else if (strcmp(cmd, "echo") == 0) {
-		// 	// TODO: Change input+5 to args
-		// 	strsep(&input_copy, " ");
-		// 	echo(&strdup(input_copy),state);
-		// 	// for (int i = 0; i < no_of_args; i++) {
-		// 	// 	printf("%s", args[i]);
-		// 	// }
-		// 	printf("\n");
+		}else if (strcmp(cmd, "echo") == 0) {
+			echo(input_copy, &output);
 		} else if (strcmp(cmd, "pwd") == 0) {
-			char path[PATH_MAX];
-			char *val = getcwd(path, PATH_MAX);
-			if (val == NULL) {
-				output = "Could not get present working directory\n";
-			} else {
-				sprintf(output,"%s\n", path);
-			}
-
+			pwd(no_of_args, args, &output);
 		} else if (strcmp(cmd, "cd") == 0) {
-			if (no_of_args == 0) {
-				output = "cd: provide path\n" ;
-			} else {
-				char *path = args[0];
-				if (strcmp(args[0], "~") == 0) {
-					path = getenv("HOME");
-				}
-				int result = chdir(path);
-				if (result != 0) {
-					sprintf(output, "cd: %s: No such file or directory\n", path);
-				}
-			}
+			cd(no_of_args, args, &output);
 		} else if (strcmp(cmd, "type") == 0) {
-			int isValid = 0;
-			for (int i = 0; i < no_of_cmds; i++) {
-				if (strncmp(args[0], cmds[i], strlen(cmds[i])) == 0) {
-					sprintf(output,"%s is a shell builtin\n", cmds[i]);
-					isValid = 1;
-				}
-			}
-			if (isValid == 0) {
-				char *path = get_inbuilt_cmd_path(args[0]);
-				if (path != NULL) {
-					sprintf(output,"%s is %s\n", args[0], path);
-					isValid = 1;
-				}
-			}
-
-			if (isValid == 0) {
-				sprintf(output,"%s: not found\n", args[0]);
-			}
+			type(no_of_args, args, cmds, no_of_cmds,&output);
 		} else if (strcmp(cmd, "history") == 0){
-			free(output);
-			if(no_of_args > 0){
-				if(strcmp(args[0],"-r") == 0){
-					if(no_of_args == 1){
-						output = strdup("Enter path\n");
-					}else{
-						history_load(history, args[1]);
-						continue;
-					}
-				}else if(strcmp(args[0],"-w") == 0 || strcmp(args[0],"-a") == 0){
-					if(no_of_args == 1){
-						output = strdup("Enter path\n");
-					}else{
-						char mode = args[0][1];
-						history_save(history, args[1], mode);
-						continue;
-					}
-				}else{
-					int limit = atoi(args[0]);
-					output = get_history_limit(history, limit);
-				}
-			}else{
-				output = get_history_all(history);
+			if(history_cmd(no_of_args, args,&output, history) == 1){
+				continue;
 			}
 		}else {
-			int count = 0;
-			char *path = get_inbuilt_cmd_path(cmd);
-
-			char *new_args[no_of_args + 2];
-			new_args[0] = strdup(cmd);
-			int i = 0;
-			for (i = 0; i < no_of_args; i++) {
-				new_args[i + 1] = strdup(args[i]);
-			}
-			new_args[no_of_args + 1] = NULL;
-
-			if (path == NULL) {
-				sprintf(output,"%s: command not found\n", cmd);
-			} else {
-				pid_t pid = fork();
-				if (pid == -1) {
-					perror("Unable to execute process");
-					exit(EXIT_FAILURE);
-				} else if (pid == 0) {
-					execv(path, new_args);
-					exit(EXIT_SUCCESS);
-				} else {
-					waitpid(pid, NULL, 0);
-				}
-			}
+			exec_cmd(no_of_args, cmd, args, &output);
 		}
 		if(*state == REDIRECT){
 			if(strlen(output) != 0){
@@ -424,6 +252,7 @@ int main(int argc, char *argv[]) {
 			free(args[i]);
 		}
 		free(output);
+		free(input_copy);
 		free(input_ptr);
 		free(state);
 	}
@@ -447,4 +276,53 @@ char* trim(char *str){
 
 	memmove(str, str+i, len-i+1);
 	return str;
+}
+
+int get_args(char **raw_arg, char *args[], enum STATE *state) {
+	char *input = *raw_arg;
+	if (input == NULL || strlen(input) == 0) {
+		return 0;
+	}
+
+	*state = NORMAL;
+	int len = strlen(input);
+
+	// MAX 100 args with each max length of 100
+	int no_of_args = 0;
+	char *buf = (char *)malloc(sizeof(char) * 100);
+	buf[0] = '\0';
+	for (int i = 0; i < len; i++) {
+		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
+			*state = REDIRECT;
+			*raw_arg = &(*raw_arg)[i];
+			break;
+		}
+		if (strncmp(&input[i], "'", 1) == 0) {
+			if (*state == NORMAL) {
+				*state = SINGLE;
+			} else {
+				if (strlen(buf) > 0) {
+					args[no_of_args++] = strdup(buf);
+					buf = (char*)malloc(sizeof(char) * 100);
+					buf[0] = '\0';
+				}
+				*state = NORMAL;
+			}
+			continue;
+		}
+		if (strncmp(&input[i], " ", 1) == 0 && *state == NORMAL) {
+			if (strlen(buf) > 0) {
+				args[no_of_args++] = strdup(buf);
+				buf = (char*)malloc(sizeof(char) * 100);
+				buf[0] = '\0';
+			}
+			continue;
+		}
+		buf = strncat(buf, &input[i], 1);
+	}
+
+	if (strlen(buf) > 0) {
+		args[no_of_args++] = strdup(buf);
+	}
+	return no_of_args;
 }

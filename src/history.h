@@ -1,3 +1,4 @@
+#pragma once
 #include <linux/limits.h>
 #include <stdlib.h>
 #include <string.h>
