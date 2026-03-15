@@ -254,22 +254,36 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 			break;
 		}
 		if(input[i] == '\''){
-			if(*state == NORMAL){
-				*state = SINGLE;
-				continue;
-			}else if(*state == SINGLE) {
-				*state = NORMAL;
-				continue;
+			if(input[i-1] == '\\'){
+				output_count -= 1;
+			}else{
+				if(*state == NORMAL){
+					*state = SINGLE;
+					continue;
+				}else if(*state == SINGLE) {
+					*state = NORMAL;
+					continue;
+				}
 			}
 		}else if(input[i] == '\"'){
-			if(*state == NORMAL){
-				*state = DOUBLE;
-				continue;
-			}else if(*state == DOUBLE){
-				*state = NORMAL;
+			if(input[i-1] == '\\'){
+				output_count -= 1;
+			}else{
+				if(*state == NORMAL){
+					*state = DOUBLE;
+					continue;
+				}else if(*state == DOUBLE){
+					*state = NORMAL;
+					continue;
+				}
+			}
+		}else if(input[i] == ' ' ){
+			if(input[i-1] == '\\'){
+				input[i] = '\a';
+				output_count -= 1;
+				output[output_count++] = '\a';
 				continue;
 			}
-		}else if(input[i] == ' '){
 			if(*state == NORMAL){
 				if(input[i-1] == ' '){
 					continue;
@@ -278,6 +292,8 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 				output[output_count++] = '\a';
 				continue;
 			}
+		}else if(input[i-1] == '\\' ){
+			output_count -= 1;
 		}
 
 		output[output_count++] = input[i];
