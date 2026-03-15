@@ -37,48 +37,6 @@ void termios_startup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-
-void echo_tmep(char **raw_arg, enum STATE *state) {
-	char *input = *raw_arg;
-	*state = NORMAL;
-	int len = strlen(input);
-	char *buf = (char *)malloc(sizeof(char) * 100);
-	buf[0] = '\0';
-	for (int i = 0; i < len; i++) {
-		if (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0){
-			*state = REDIRECT;
-			*raw_arg = &(*raw_arg)[i];
-			break;
-		}
-		if (strncmp(&input[i], "'", 1) == 0) {
-			if (state == NORMAL) {
-				*state = SINGLE;
-			} else {
-				if (strlen(buf) > 0) {
-					printf("%s", buf);
-					buf = (char*)malloc(sizeof(char) * 100);
-					buf[0] = '\0';
-				}
-				*state = NORMAL;
-			}
-			continue;
-		}
-		if (strncmp(&input[i], " ", 1) == 0 && state == NORMAL) {
-			if (strlen(buf) > 0) {
-				printf("%s", buf);
-				buf = (char*)malloc(sizeof(char) * 100);
-				buf[0] = '\0';
-			}
-			if(strncmp(&input[i-1]," ", 1) != 0){
-				printf(" ");
-			}
-			continue;
-		}
-		buf = strncat(buf, &input[i], 1);
-	}
-	printf("%s", buf);
-}
-
 int main(int argc, char *argv[]) {
 	// Terminal Startup
 	termios_startup();

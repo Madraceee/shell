@@ -11,6 +11,7 @@
 enum STATE {
 	NORMAL,
 	SINGLE,
+	DOUBLE,
 	REDIRECT,
 };
 

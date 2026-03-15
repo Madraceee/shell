@@ -172,10 +172,19 @@ void echo(char *args, char** output_temp){
 		if(args[i] == '\''){
 			if(state == NORMAL){
 				state = SINGLE;
-			}else {
+				continue;
+			}else if(state == SINGLE) {
 				state = NORMAL;
+				continue;
 			}
-			continue;
+		}else if(args[i] == '\"'){
+			if(state == NORMAL){
+				state = DOUBLE;
+				continue;
+			}else if(state == DOUBLE){
+				state = NORMAL;
+				continue;
+			}
 		}else if(args[i] == ' '){
 			if(state == NORMAL){
 				if(args[i-1] == ' '){
