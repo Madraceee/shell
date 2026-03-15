@@ -196,14 +196,24 @@ int main(int argc, char *argv[]) {
 		}
 		if(*state == REDIRECT_SUCCESS){
 			strsep(&input, ">");
+			char *mode = "w+";
+			if(input[0] == '>'){
+				strsep(&input, ">");
+				mode = "a+";
+			}
 			input = trim(input);
-			FILE *file = fopen(input, "w+");
+			FILE *file = fopen(input, mode);
 			fprintf(file, "%s", output);
 			fclose(file);
 		}else if(*state == REDIRECT_FAILURE){
 			strsep(&input, ">");
+			char *mode = "w+";
+			if(input[0] == '>'){
+				strsep(&input, ">");
+				mode = "a+";
+			}
 			input = trim(input);
-			FILE *file = fopen(input, "w+");
+			FILE *file = fopen(input, mode);
 			fprintf(file, "%s", error);
 			fclose(file);
 		}
