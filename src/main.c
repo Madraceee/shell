@@ -69,8 +69,10 @@ int main(int argc, char *argv[]) {
 		enum STATE *state = (enum STATE*)malloc(sizeof(enum STATE)*1);
 		char *input = (char *)malloc(sizeof(char) * 500);
 		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
+		char *error = (char*)malloc(sizeof(char) * (PATH_MAX+50));
 		int is_tab_pressed = 0;
 		output[0] = '\0';
+		error[0] = '\0';
 
 		printf("$ ");
 		int input_count = 0;
@@ -178,20 +180,21 @@ int main(int argc, char *argv[]) {
 		if (strcmp(cmd, "exit") == 0) {
 			return 0;
 		}else if (strcmp(cmd, "echo") == 0) {
-			echo(no_of_args, args, &output);
+			echo(no_of_args, args, &output, &error);
 		} else if (strcmp(cmd, "pwd") == 0) {
-			pwd(no_of_args, args, &output);
+			pwd(no_of_args, args, &output, &error);
 		} else if (strcmp(cmd, "cd") == 0) {
-			cd(no_of_args, args, &output);
+			cd(no_of_args, args, &output, &error);
 		} else if (strcmp(cmd, "type") == 0) {
-			type(no_of_args, args, cmds, no_of_cmds,&output);
+			type(no_of_args, args, cmds, no_of_cmds,&output, &error);
 		} else if (strcmp(cmd, "history") == 0){
-			if(history_cmd(no_of_args, args,&output, history) == 1){
+			if(history_cmd(no_of_args, args,&output, &error, history) == 1){
 				continue;
 			}
 		}else {
-			exec_cmd(no_of_args, cmd, args, &output);
+			exec_cmd(no_of_args, cmd, args, &output, &error);
 		}
+
 		if(*state == REDIRECT_SUCCESS){
 			if(strlen(output) != 0){
 				strsep(&input, ">");
@@ -200,14 +203,24 @@ int main(int argc, char *argv[]) {
 				fprintf(file, "%s", output);
 				fclose(file);
 			}
+		}else if(*state == REDIRECT_FAILURE){
+			if(strlen(output) != 0){
+				strsep(&input, ">");
+				input = trim(input);
+				FILE *file = fopen(input, "w+");
+				fprintf(file, "%s", error);
+				fclose(file);
+			}
 		}else{
 			printf("%s", output);
+			printf("%s", error);
 		}
 
 		for(int i=0;i<no_of_args;i++){
 			free(args[i]);
 		}
 		free(output);
+		free(error);
 		free(input_copy);
 		free(input_ptr);
 		free(state);
@@ -247,10 +260,14 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 	char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
 	char output_count = 0;
 	for (int i = 0; i < len; i++) {
-		if (input[i-1] == ' ' && (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0)){
+		if (input[i-1] == ' ' && (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0 || strncmp(&input[i], "2>",2) == 0)){
 			output_count -= 1;
-			*state = REDIRECT_SUCCESS;
 			*raw_arg = &(*raw_arg)[i];
+			if(strncmp(&input[i], "2>",2) == 0){
+				*state = REDIRECT_FAILURE;
+			}else{
+				*state = REDIRECT_SUCCESS;
+			}
 			break;
 		}
 		if(input[i] == '\''){

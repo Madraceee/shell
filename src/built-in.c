@@ -3,9 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 
-void cd(int argc, char **argv, char** output) {
+void cd(int argc, char **argv, char** output, char** error) {
 	if (argc == 0) {
-		*output = "cd: provide path\n" ;
+		*error = "cd: provide path\n" ;
 	} else {
 		char *path = argv[0];
 		if (strcmp(argv[0], "~") == 0) {
@@ -18,17 +18,17 @@ void cd(int argc, char **argv, char** output) {
 	}
 }
 
-void pwd(int argc, char **argv, char** output){
+void pwd(int argc, char **argv, char** output, char** error){
 	char path[PATH_MAX];
 	char *val = getcwd(path, PATH_MAX);
 	if (val == NULL) {
-		*output = "Could not get present working directory\n";
+		*error = "Could not get present working directory\n";
 	} else {
 		sprintf(*output,"%s\n", path);
 	}
 }
 
-void type(int argc, char **argv,char *cmds[], int no_of_cmds, char** output){
+void type(int argc, char **argv,char *cmds[], int no_of_cmds, char** output, char** error){
 	int isValid = 0;
 	for (int i = 0; i < no_of_cmds; i++) {
 		if (strcmp(argv[0], cmds[i]) == 0) {
@@ -45,7 +45,7 @@ void type(int argc, char **argv,char *cmds[], int no_of_cmds, char** output){
 	}
 
 	if (isValid == 0) {
-		sprintf(*output,"%s: not found\n", argv[0]);
+		sprintf(*error,"%s: not found\n", argv[0]);
 	}
 }
 
@@ -94,18 +94,18 @@ char *get_inbuilt_cmd_path(char *input) {
 }
 
 
-int history_cmd(int argc, char **argv, char** output, struct history* history){
+int history_cmd(int argc, char **argv, char** output,char** error, struct history* history){
 	if(argc > 0){
 		if(strcmp(argv[0],"-r") == 0){
 			if(argc == 1){
-				*output = strdup("Enter path\n");
+				*error = strdup("Enter path\n");
 			}else{
 				history_load(history, argv[1]);
 				return 1;
 			}
 		}else if(strcmp(argv[0],"-w") == 0 || strcmp(argv[0],"-a") == 0){
 			if(argc == 1){
-				*output = strdup("Enter path\n");
+				*error = strdup("Enter path\n");
 			}else{
 				char mode = argv[0][1];
 				history_save(history, argv[1], mode);
@@ -121,7 +121,7 @@ int history_cmd(int argc, char **argv, char** output, struct history* history){
 	return 0;
 }
 
-void exec_cmd(int argc, char* cmd,char **argv, char** output){
+void exec_cmd(int argc, char* cmd,char **argv, char** output, char** error){
 	int count = 0;
 	char *path = get_inbuilt_cmd_path(cmd);
 
@@ -134,16 +134,19 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output){
 	new_args[argc + 1] = NULL;
 
 	if (path == NULL) {
-		sprintf(*output,"%s: command not found\n", cmd);
+		sprintf(*error,"%s: command not found\n", cmd);
 	} else {
-		int fileids[2];
-		if(pipe(fileids) == -1){
+		int stdout_ids[2];
+		int stderr_ids[2];
+
+		if(pipe(stdout_ids) == -1 || pipe(stderr_ids)){
 			perror("Unable to execute process");
 			exit(EXIT_FAILURE);
 		}
+		int saved_stderr = dup(STDERR_FILENO);
 		int saved_stdout = dup(STDOUT_FILENO);
-		dup2(fileids[1], STDOUT_FILENO);
-		*output[0] = '\0';
+		dup2(stdout_ids[1], STDOUT_FILENO);
+		dup2(stderr_ids[1], STDERR_FILENO);
 
 		pid_t pid = fork();
 		if (pid == -1) {
@@ -156,21 +159,32 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output){
 			waitpid(pid, NULL, 0);
 		}
 		dup2(saved_stdout, STDOUT_FILENO);
-		close(fileids[1]);
+		dup2(saved_stderr, STDERR_FILENO);
+		close(stdout_ids[1]);
+		close(stderr_ids[1]);
 
 		char buf[100];
 		while(1){
-			int n = read(fileids[0],buf,100);
+			int n = read(stdout_ids[0],buf,100);
 			if(n == 0){
 				break;
 			}
 			strncat(*output, buf,n);
 		}
 		strcat(*output, "\0");
+
+		while(1){
+			int n = read(stderr_ids[0],buf,100);
+			if(n == 0){
+				break;
+			}
+			strncat(*error, buf,n);
+		}
+		strcat(*error, "\0");
 	}
 }
 
-void echo(int argc, char **argv,char **output){
+void echo(int argc, char **argv,char **output, char** error){
 	for(int i=0;i<argc;i++){
 		strcat(*output, argv[i]);
 		if(i < argc-1){
