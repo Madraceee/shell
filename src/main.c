@@ -17,7 +17,7 @@ struct termios org_trm;
 struct history* history;
 
 char* trim(char *str);
-int get_args(char **raw_arg, char *args[], enum STATE *state);
+int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state);
 
 void termios_cleanup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &org_trm);
@@ -170,10 +170,9 @@ int main(int argc, char *argv[]) {
 
 		char *cmd;
 		char *args[100];
-		cmd = strsep(&input, " ");
 
 		*state = NORMAL;
-		int no_of_args = get_args(&input, args, state);
+		int no_of_args = get_cmd_and_args(&input, &cmd, args, state);
 
 		insert_record(history, strdup(input_copy));
 		if (strcmp(cmd, "exit") == 0) {
@@ -235,7 +234,7 @@ char* trim(char *str){
 	return str;
 }
 
-int get_args(char **raw_arg, char *args[], enum STATE *state) {
+int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state) {
 	char *input = *raw_arg;
 	if (input == NULL || strlen(input) == 0) {
 		return 0;
@@ -306,6 +305,7 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 	output[output_count] = '\0';
 
 	int no_of_args = 0;
+	char *raw_cmd = strsep(&output, " ");
 	while(output != NULL){
 		char *word = strsep(&output, " ");
 		args[no_of_args++] = strdup(word);
@@ -319,6 +319,13 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 			}
 		}
 	}
+
+	for(int j=0;raw_cmd[j] != '\0';j++){
+		if(raw_cmd[j] == '\a'){
+			raw_cmd[j] = ' ';
+		}
+	}
+	*cmd = raw_cmd;
 
 	return no_of_args;
 }
