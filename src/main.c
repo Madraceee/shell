@@ -126,12 +126,10 @@ int main(int argc, char *argv[]) {
 								i++;
 							}
 							if(i>input_count){
-								printf("%d %d\n", i, input_count);
 								strncpy(input, completions[0], i);
 								input[i] = '\0';
-								printf("%s\n",input);
 								input_count = i;
-								printf("\n$ %s",input);
+								printf("\r\033[2K$ %s", input);
 								fflush(stdout);
 								is_tab_pressed = 0;
 							}
