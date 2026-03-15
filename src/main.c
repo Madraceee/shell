@@ -254,7 +254,7 @@ int get_args(char **raw_arg, char *args[], enum STATE *state) {
 			break;
 		}
 		if(input[i] == '\''){
-			if(input[i-1] == '\\'){
+			if(input[i-1] == '\\' && *state != SINGLE){
 				output_count -= 1;
 			}else{
 				if(*state == NORMAL){
