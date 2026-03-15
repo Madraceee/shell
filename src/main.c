@@ -195,21 +195,17 @@ int main(int argc, char *argv[]) {
 			exec_cmd(no_of_args, cmd, args, *state, &output, &error);
 		}
 		if(*state == REDIRECT_SUCCESS){
-			if(strlen(output) != 0){
-				strsep(&input, ">");
-				input = trim(input);
-				FILE *file = fopen(input, "w+");
-				fprintf(file, "%s", output);
-				fclose(file);
-			}
+			strsep(&input, ">");
+			input = trim(input);
+			FILE *file = fopen(input, "w+");
+			fprintf(file, "%s", output);
+			fclose(file);
 		}else if(*state == REDIRECT_FAILURE){
-			if(strlen(error) != 0){
-				strsep(&input, ">");
-				input = trim(input);
-				FILE *file = fopen(input, "w+");
-				fprintf(file, "%s", error);
-				fclose(file);
-			}
+			strsep(&input, ">");
+			input = trim(input);
+			FILE *file = fopen(input, "w+");
+			fprintf(file, "%s", error);
+			fclose(file);
 		}
 
 		if(*state != REDIRECT_SUCCESS){
