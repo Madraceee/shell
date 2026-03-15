@@ -126,6 +126,7 @@ int main(int argc, char *argv[]) {
 								i++;
 							}
 							if(i>input_count){
+								printf("%d %d\n", i, input_count);
 								strncpy(input, completions[0], i);
 								input[i] = '\0';
 								input_count = i;
