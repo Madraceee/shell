@@ -121,7 +121,7 @@ int history_cmd(int argc, char **argv, char** output,char** error, struct histor
 	return 0;
 }
 
-void exec_cmd(int argc, char* cmd,char **argv, char** output, char** error){
+void exec_cmd(int argc, char* cmd,char **argv,enum STATE state, char** output, char** error){
 	int count = 0;
 	char *path = get_inbuilt_cmd_path(cmd);
 
@@ -145,8 +145,16 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output, char** error){
 		}
 		int saved_stderr = dup(STDERR_FILENO);
 		int saved_stdout = dup(STDOUT_FILENO);
-		dup2(stdout_ids[1], STDOUT_FILENO);
-		dup2(stderr_ids[1], STDERR_FILENO);
+		switch(state){
+			case REDIRECT_SUCCESS:
+				dup2(stdout_ids[1], STDOUT_FILENO);
+				break;
+			case REDIRECT_FAILURE:
+				dup2(stderr_ids[1], STDERR_FILENO);
+				break;
+			default:
+				break;
+		}
 
 		pid_t pid = fork();
 		if (pid == -1) {
@@ -163,24 +171,29 @@ void exec_cmd(int argc, char* cmd,char **argv, char** output, char** error){
 		close(stdout_ids[1]);
 		close(stderr_ids[1]);
 
-		char buf[100];
-		while(1){
-			int n = read(stdout_ids[0],buf,100);
-			if(n == 0){
-				break;
+		if(state == REDIRECT_SUCCESS){
+			char buf[100];
+			while(1){
+				int n = read(stdout_ids[0],buf,100);
+				if(n == 0){
+					break;
+				}
+				strncat(*output, buf,n);
 			}
-			strncat(*output, buf,n);
+			strcat(*output, "\0");
 		}
-		strcat(*output, "\0");
 
-		while(1){
-			int n = read(stderr_ids[0],buf,100);
-			if(n == 0){
-				break;
+		if(state == REDIRECT_FAILURE){
+			char buf[100];
+			while(1){
+				int n = read(stderr_ids[0],buf,100);
+				if(n == 0){
+					break;
+				}
+				strncat(*error, buf,n);
 			}
-			strncat(*error, buf,n);
+			strcat(*error, "\0");
 		}
-		strcat(*error, "\0");
 	}
 }
 

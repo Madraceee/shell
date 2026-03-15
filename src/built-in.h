@@ -21,5 +21,5 @@ void type(int argc, char **argv,char *cmds[], int no_of_cmds, char** output, cha
 char *get_inbuilt_cmd_path(char *input);
 void pwd(int argc, char **argv, char** output, char** error);
 int history_cmd(int argc, char **argv, char** output, char** error, struct history* history);
-void exec_cmd(int argc, char* cmd,char **argv, char** output, char** error);
+void exec_cmd(int argc, char* cmd,char **argv,enum STATE state, char** output, char** error);
 void echo(int argc, char **argv,char **output, char** error);

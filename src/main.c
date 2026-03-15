@@ -192,9 +192,8 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 		}else {
-			exec_cmd(no_of_args, cmd, args, &output, &error);
+			exec_cmd(no_of_args, cmd, args, *state, &output, &error);
 		}
-
 		if(*state == REDIRECT_SUCCESS){
 			if(strlen(output) != 0){
 				strsep(&input, ">");
