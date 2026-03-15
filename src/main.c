@@ -210,10 +210,15 @@ int main(int argc, char *argv[]) {
 				fprintf(file, "%s", error);
 				fclose(file);
 			}
-		}else{
+		}
+
+		if(*state != REDIRECT_SUCCESS){
 			printf("%s", output);
+		}
+		if(*state != REDIRECT_FAILURE){
 			printf("%s", error);
 		}
+		
 
 		for(int i=0;i<no_of_args;i++){
 			free(args[i]);
