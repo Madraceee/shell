@@ -313,6 +313,7 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 	}
 	char **completions;
 	input[*input_count] = '\0';
+	char *original_input = strdup(input);
 
 	char *cmd;
 	char *args[100];
@@ -358,7 +359,8 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 	if(no_of_args != 0){
 		sprintf(input,"%s ", cmd);
 		for(int i=0;i<no_of_args-1;i++){
-			sprintf(input,"%s ", args[i]);
+			strcat(input, args[i]);
+			strcat(input," ");
 		}
 		*input_count = strlen(input);
 	}
@@ -400,15 +402,20 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 				is_tab_pressed = 0;
 			}
 		}else{
+			printf("%s", original_input);
 			printf("\n");
 			for(int i=0;i<no_of_completions;i++){
 				printf("%s  ", completions[i]);
 			}
-			printf("\n$ %s",input);
+			sprintf(input, "%s", original_input);
+			*input_count = strlen(input);
+			printf("\n$ %s", input);
 			fflush(stdout);
 			is_tab_pressed = 0;
 		}
 	}else{
+		strcat(input, args[no_of_args-1]);
+		printf("%s", input);
 		printf("\a");
 	}
 	free(completions);
