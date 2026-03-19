@@ -206,3 +206,4 @@ void echo(int argc, char **argv,char **output, char** error){
 	}
 	strcat(*output, "\n");
 }
+

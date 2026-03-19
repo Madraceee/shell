@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <dirent.h>
 #include <linux/limits.h>
 #include <stdio.h>
@@ -12,14 +11,12 @@
 #include "history.h"
 #include "trie.h"
 #include "built-in.h"
+#include "util.h"
+#include "completion.h"
 
 struct termios org_trm;
 struct history* history;
 struct trie* cmd_completion;
-
-char* trim(char *str);
-int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state);
-char* handle_tab(char *input, int *input_count, char **output, int *is_tab_pressed);
 
 void termios_cleanup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &org_trm);
@@ -94,7 +91,7 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 			if(chr == '\t'){
-				input = handle_tab(input, &input_count, &output, &is_tab_pressed);
+				input = handle_tab(input, &input_count, &output, &is_tab_pressed, cmd_completion);
 				continue;
 			}
 			if(chr == '['){
@@ -189,242 +186,3 @@ int main(int argc, char *argv[]) {
 }
 
 
-char* trim(char *str){
-	int i = 0;
-	int len = strlen(str);
-
-	while(i < len && (isblank(str[i])!=0 )){
-		i++;
-	}
-
-	if(i == len){
-		*str = '\0';
-		return str;
-	}
-
-	memmove(str, str+i, len-i);
-
-	i = len-i-1;
-
-	while(i > 0 && (isblank(str[i]) != 0)){
-		i--;
-	}
-
-	str[i+1] = '\0';
-	return str;
-}
-
-int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state) {
-	char *input = *raw_arg;
-	if (input == NULL || strlen(input) == 0) {
-		return 0;
-	}
-
-	*state = NORMAL;
-	int len = strlen(input);
-	input = trim(input);
-
-	char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
-	char output_count = 0;
-	for (int i = 0; i < len; i++) {
-		if (input[i-1] == ' ' && (strncmp(&input[i], ">", 1) == 0 || strncmp(&input[i], "1>", 2) == 0 || strncmp(&input[i], "2>",2) == 0)){
-			output_count -= 1;
-			*raw_arg = &(*raw_arg)[i];
-			if(strncmp(&input[i], "2>",2) == 0){
-				*state = REDIRECT_FAILURE;
-			}else{
-				*state = REDIRECT_SUCCESS;
-			}
-			break;
-		}
-		if(input[i] == '\''){
-			if(input[i-1] == '\\' && *state != SINGLE){
-				output_count -= 1;
-			}else{
-				if(*state == NORMAL){
-					*state = SINGLE;
-					continue;
-				}else if(*state == SINGLE) {
-					*state = NORMAL;
-					continue;
-				}
-			}
-		}else if(input[i] == '\"'){
-			if(input[i-1] == '\\' && *state != SINGLE){
-				output_count -= 1;
-			}else{
-				if(*state == NORMAL){
-					*state = DOUBLE;
-					continue;
-				}else if(*state == DOUBLE){
-					*state = NORMAL;
-					continue;
-				}
-			}
-		}else if(input[i] == ' ' ){
-			if(input[i-1] == '\\' && *state != SINGLE){
-				input[i] = '\a';
-				output_count -= 1;
-				output[output_count++] = '\a';
-				continue;
-			}
-			if(*state == NORMAL){
-				if(input[i-1] == ' '){
-					continue;
-				}
-			}else {
-				output[output_count++] = '\a';
-				continue;
-			}
-		}else if(input[i-1] == '\\'){
-			if(*state != SINGLE ){
-				output_count -= 1;
-			}
-		}
-
-		output[output_count++] = input[i];
-		if(i > 0  && input[i] == '\\' && input[i-1] == '\\'){
-			input[i] = '\a';
-		}
-	}
-	output[output_count] = '\0';
-
-	int no_of_args = 0;
-	char *raw_cmd = strsep(&output, " ");
-	while(output != NULL){
-		char *word = strsep(&output, " ");
-		args[no_of_args++] = strdup(word);
-	}
-
-	for(int i=0;i<no_of_args;i++){
-		int j=0;
-		for(;args[i][j] != '\0';j++){
-			if(args[i][j] == '\a'){
-				args[i][j] = ' ';
-			}
-		}
-	}
-
-	for(int j=0;raw_cmd[j] != '\0';j++){
-		if(raw_cmd[j] == '\a'){
-			raw_cmd[j] = ' ';
-		}
-	}
-	*cmd = raw_cmd;
-
-	return no_of_args;
-}
-
-char* handle_tab(char *input, int *input_count, char **output, int *is_tab_pressed){
-	if(*input_count <= 0){
-		return input;
-	}
-	char **completions;
-	input[*input_count] = '\0';
-	char *original_input = strdup(input);
-
-	char *cmd;
-	char *args[100];
-	enum STATE state;
-	char *input_copy = strdup(input);
-	int no_of_args = get_cmd_and_args(&input_copy, &cmd, args, &state);
-
-	int no_of_completions = 0;
-
-	if(no_of_args == 0){
-		char *input_copy = strdup(input);
-		no_of_completions =  get_completion(cmd_completion, input_copy, &completions);
-	}else{
-		char path[PATH_MAX];
-		char *val = getcwd(path, PATH_MAX);
-		if(val == NULL){
-			printf("\nError fetching files\n");
-			return input;
-		}
-		DIR* dir = opendir(val);
-		if(dir == NULL){
-			printf("\nError fetching files\n");
-			return input;
-		}
-		struct dirent* ent;
-		// Update file sizes
-		completions = (char**)malloc(sizeof(char*) * 500);
-		struct trie *t = new_trie();
-		int completions_count = 0;
-		while((ent = readdir(dir)) != NULL){
-			if(ent->d_type == DT_REG){
-				load_word(t, ent->d_name, 0);
-			}
-		}
-		closedir(dir);
-
-		no_of_completions = get_completion(t, args[no_of_args-1], &completions);
-	}
-
-	*input_count = 0;
-	printf("\r\033[2K$ ");
-	input[0] = '\0';
-	if(no_of_args != 0){
-		sprintf(input,"%s ", cmd);
-		for(int i=0;i<no_of_args-1;i++){
-			strcat(input, args[i]);
-			strcat(input," ");
-		}
-		*input_count = strlen(input);
-	}
-
-	if(no_of_completions == 1){
-		strcat(input, completions[0]);
-		strcat(input, " ");
-		*input_count += strlen(completions[0])+1;
-		printf("%s", input);
-	}else if(no_of_completions != 0){
-		if(*is_tab_pressed == 0){
-			*is_tab_pressed = 1;
-
-			int is_all_matching = 1;
-			int i=0;
-			while(1){
-				if(i >= strlen(completions[0])){
-					break;
-				}
-				char c = completions[0][i];
-				for(int j=0;j<no_of_completions;j++){
-					if(i >= strlen(completions[j]) || completions[j][i] != c){
-						is_all_matching = 0;
-						break;
-					}
-				}
-				if(is_all_matching == 0){
-					break;
-				}
-				i++;
-			}
-			if(i+*input_count>*input_count){
-				strncat(input, completions[0], i);
-				strcat(input, "\0");
-				*input_count += i;
-				printf("%s", input);
-				fflush(stdout);
-				is_tab_pressed = 0;
-			}
-		}else{
-			printf("%s", original_input);
-			printf("\n");
-			for(int i=0;i<no_of_completions;i++){
-				printf("%s  ", completions[i]);
-			}
-			sprintf(input, "%s", original_input);
-			*input_count = strlen(input);
-			printf("\n$ %s", input);
-			fflush(stdout);
-			is_tab_pressed = 0;
-		}
-	}else{
-		strcat(input, args[no_of_args-1]);
-		printf("%s", input);
-	}
-	printf("\a");
-	free(completions);
-	return input;
-}
