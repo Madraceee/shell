@@ -378,7 +378,6 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 		strcat(input, " ");
 		*input_count += strlen(completions[0])+1;
 		printf("%s", input);
-		printf("\a");
 	}else if(no_of_completions != 0){
 		if(*is_tab_pressed == 0){
 			*is_tab_pressed = 1;
@@ -421,12 +420,11 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 			fflush(stdout);
 			is_tab_pressed = 0;
 		}
-		printf("\a");
 	}else{
 		strcat(input, args[no_of_args-1]);
 		printf("%s", input);
-		printf("\a");
 	}
+	printf("\a");
 	free(completions);
 	return input;
 }
