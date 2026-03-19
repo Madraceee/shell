@@ -202,7 +202,15 @@ char* trim(char *str){
 		return str;
 	}
 
-	memmove(str, str+i, len-i+1);
+	memmove(str, str+i, len-i);
+
+	i = len-i-1;
+
+	while(i > 0 && (isblank(str[i]) != 0)){
+		i--;
+	}
+
+	str[i+1] = '\0';
 	return str;
 }
 
@@ -372,7 +380,7 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 		printf("%s", input);
 	}else if(no_of_completions != 0){
 		printf("\a");
-		if(is_tab_pressed == 0){
+		if(*is_tab_pressed == 0){
 			*is_tab_pressed = 1;
 
 			int is_all_matching = 1;
@@ -393,9 +401,10 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 				}
 				i++;
 			}
-			if(i>*input_count){
-				strncpy(input, completions[0], i);
-				input[i] = '\0';
+			if(i+*input_count>*input_count){
+				strncat(input, completions[0], i);
+				strcat(input, "\0");
+				// strncpy(input, completions[0], i);
 				*input_count += i;
 				printf("%s", input);
 				fflush(stdout);
