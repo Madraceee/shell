@@ -13,7 +13,7 @@ char* trim(char *str){
 		return str;
 	}
 
-	memmove(str, str+i, len-i);
+	memmove(str, str+i, len-i+1);
 
 	i = strlen(str);
 

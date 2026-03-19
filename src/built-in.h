@@ -10,7 +10,7 @@
 #include "util.h"
 
 void cd(int argc, char **argv, char** output, char** error);
-void type(int argc, char **argv,char *cmds[], int no_of_cmds, char** output, char** error);
+void type(int argc, char **argv,char cmds[6][10], int no_of_cmds, char** output, char** error);
 char *get_inbuilt_cmd_path(char *input);
 void pwd(int argc, char **argv, char** output, char** error);
 int history_cmd(int argc, char **argv, char** output, char** error, struct history* history);

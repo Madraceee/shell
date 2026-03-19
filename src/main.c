@@ -16,7 +16,6 @@
 
 struct termios org_trm;
 struct history* history;
-struct trie* cmd_completion;
 
 void termios_cleanup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &org_trm);
@@ -43,29 +42,22 @@ int main(int argc, char *argv[]) {
 	setbuf(stdout, NULL);
 	
 	// Command Completion
-	cmd_completion = new_trie();
+	struct trie* cmd_completion = new_trie();
 	load(cmd_completion);
 
 	const int no_of_cmds = 6;
-	char **cmds = (char**)malloc(sizeof(char*)*no_of_cmds);
-	cmds[0] = "echo";
-	cmds[1] = "exit";
-	cmds[2] = "type";
-	cmds[3] = "pwd";
-	cmds[4] = "cd";
-	cmds[5] = "history";
+	char cmds[6][10] = {"echo", "exit", "type", "pwd", "cd", "history"};
 	for(int i = 0;i<no_of_cmds;i++){
 		load_word(cmd_completion, cmds[i], 0);
 	}
 	cmd_completion->total_inputs += no_of_cmds;
-
 
 	// History
 	history = new_history(100);
 	atexit(history_cleanup);
 
 	while (1) {
-		enum STATE *state = (enum STATE*)malloc(sizeof(enum STATE)*1);
+		enum STATE state = NORMAL;
 		char *input = (char *)malloc(sizeof(char) * 500);
 		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
 		char *error = (char*)malloc(sizeof(char) * (PATH_MAX+50));
@@ -117,8 +109,8 @@ int main(int argc, char *argv[]) {
 		char *cmd;
 		char *args[100];
 
-		*state = NORMAL;
-		int no_of_args = get_cmd_and_args(&input, &cmd, args, state);
+		state = NORMAL;
+		int no_of_args = get_cmd_and_args(&input, &cmd, args, &state);
 
 		insert_record(history, strdup(input_copy));
 		if (strcmp(cmd, "exit") == 0) {
@@ -136,9 +128,9 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 		}else {
-			exec_cmd(no_of_args, cmd, args, *state, &output, &error);
+			exec_cmd(no_of_args, cmd, args, state, &output, &error);
 		}
-		if(*state == REDIRECT_SUCCESS){
+		if(state == REDIRECT_SUCCESS){
 			strsep(&input, ">");
 			char *mode = "w+";
 			if(input[0] == '>'){
@@ -149,7 +141,7 @@ int main(int argc, char *argv[]) {
 			FILE *file = fopen(input, mode);
 			fprintf(file, "%s", output);
 			fclose(file);
-		}else if(*state == REDIRECT_FAILURE){
+		}else if(state == REDIRECT_FAILURE){
 			strsep(&input, ">");
 			char *mode = "w+";
 			if(input[0] == '>'){
@@ -162,10 +154,10 @@ int main(int argc, char *argv[]) {
 			fclose(file);
 		}
 
-		if(*state != REDIRECT_SUCCESS){
+		if(state != REDIRECT_SUCCESS){
 			printf("%s", output);
 		}
-		if(*state != REDIRECT_FAILURE){
+		if(state != REDIRECT_FAILURE){
 			printf("%s", error);
 		}
 		
@@ -177,11 +169,8 @@ int main(int argc, char *argv[]) {
 		free(error);
 		free(input_copy);
 		free(input_ptr);
-		free(state);
 	}
 	
-	free(cmds);
-
 	return 0;
 }
 

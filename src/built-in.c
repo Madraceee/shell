@@ -28,7 +28,7 @@ void pwd(int argc, char **argv, char** output, char** error){
 	}
 }
 
-void type(int argc, char **argv,char *cmds[], int no_of_cmds, char** output, char** error){
+void type(int argc, char **argv,char cmds[6][10], int no_of_cmds, char** output, char** error){
 	int isValid = 0;
 	for (int i = 0; i < no_of_cmds; i++) {
 		if (strcmp(argv[0], cmds[i]) == 0) {
