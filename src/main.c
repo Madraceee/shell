@@ -404,12 +404,12 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 			if(i+*input_count>*input_count){
 				strncat(input, completions[0], i);
 				strcat(input, "\0");
-				// strncpy(input, completions[0], i);
 				*input_count += i;
 				printf("%s", input);
 				fflush(stdout);
 				is_tab_pressed = 0;
 			}
+			printf("\a");
 		}else{
 			printf("%s", original_input);
 			printf("\n");
