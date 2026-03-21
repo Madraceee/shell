@@ -42,7 +42,6 @@ int process_cmd(char *input);
 const int no_of_inbuilt_cmds = 6;
 char inbuilt_cmds[6][10] = {"echo", "exit", "type", "pwd", "cd", "history"};
 
-// TODO: REDUCE HEAP USAGE
 int main(int argc, char *argv[]) {
 	// Terminal Startup
 	termios_startup();
@@ -168,6 +167,9 @@ int process_cmd(char *input){
 
 	enum STATE state = NORMAL;
 	int no_of_args = get_cmd_and_args(&input, &cmd, args, &state);
+	if(no_of_args > 0 && strlen(args[no_of_args-1]) == 0){
+		no_of_args = 0;
+	}
 	insert_record(history, strdup(input_copy));
 
 	if (strcmp(cmd, "exit") == 0) {
