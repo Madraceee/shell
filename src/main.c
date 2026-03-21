@@ -39,6 +39,9 @@ void termios_startup(){
 void process(char *cmds[], int index, int max_cmds);
 int process_cmd(char *input);
 
+const int no_of_inbuilt_cmds = 6;
+char inbuilt_cmds[6][10] = {"echo", "exit", "type", "pwd", "cd", "history"};
+
 // TODO: REDUCE HEAP USAGE
 int main(int argc, char *argv[]) {
 	// Terminal Startup
@@ -49,8 +52,6 @@ int main(int argc, char *argv[]) {
 	struct trie* cmd_completion = new_trie();
 	load(cmd_completion);
 
-	const int no_of_inbuilt_cmds = 6;
-	char inbuilt_cmds[6][10] = {"echo", "exit", "type", "pwd", "cd", "history"};
 	for(int i = 0;i<no_of_inbuilt_cmds;i++){
 		load_word(cmd_completion, inbuilt_cmds[i], 0);
 	}
@@ -178,7 +179,7 @@ int process_cmd(char *input){
 	} else if (strcmp(cmd, "cd") == 0) {
 		cd(no_of_args, args, &output, &error);
 	} else if (strcmp(cmd, "type") == 0) {
-		// type(no_of_args, args, cmds, no_of_cmds,&output, &error);
+		type(no_of_args, args, inbuilt_cmds, no_of_inbuilt_cmds,&output, &error);
 	} else if (strcmp(cmd, "history") == 0){
 		history_cmd(no_of_args, args,&output, &error, history);
 	}else {
