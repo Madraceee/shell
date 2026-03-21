@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
 	while (1) {
 		enum STATE state = NORMAL;
-		char *input = (char *)malloc(sizeof(char) * 500);
+		char *input = (char *)malloc(sizeof(char) * (PATH_MAX * 500));
 		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
 		char *error = (char*)malloc(sizeof(char) * (PATH_MAX+50));
 		int is_tab_pressed = 0;

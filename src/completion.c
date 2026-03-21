@@ -18,7 +18,7 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 	char *original_input = strdup(input);
 
 	char *cmd;
-	char *args[100];
+	char *args[PATH_MAX * 100];
 	enum STATE state;
 	char *input_copy = strdup(input);
 	int no_of_args = get_cmd_and_args(&input_copy, &cmd, args, &state);
@@ -155,7 +155,6 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 	int no_of_completions = get_completion(t, file, &completions);
 
 	if(no_of_completions == 0){
-		printf("\a");
 		free(completions);
 		return input;
 	}
@@ -170,6 +169,10 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 
 	input[0] = '\0';
 	sprintf(input, "%s ", cmd);
+	for(int i=0;i<no_of_args-1;i++){
+		strcat(input, args[i]);
+		strcat(input, " ");
+	}
 	if(no_of_completions == 1){
 		if(strlen(relative_path) > 0){
 			strcat(input, relative_path);
@@ -222,22 +225,3 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 	free(completions);
 	return input;
 }
-
-// void get_files_completion(struct trie *t,char *path){
-// 	DIR* dir = opendir(path);
-// 	if(dir == NULL){
-// 		printf("\nError fetching files\n");
-// 	}
-// 	struct dirent* ent;
-//
-// 	int completions_count = 0;
-// 	while((ent = readdir(dir)) != NULL){
-// 		if(ent ->d_type == DT_DIR){
-// 				get_files_completion(t, );
-// 		}
-// 		if(ent->d_type == DT_REG){
-// 			load_word(t, ent->d_name, 0);
-// 		}
-// 	}
-// 	closedir(dir);
-// }
