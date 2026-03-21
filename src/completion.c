@@ -155,6 +155,7 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 	int no_of_completions = get_completion(t, file, &completions);
 
 	if(no_of_completions == 0){
+		printf("\a");
 		free(completions);
 		return input;
 	}
