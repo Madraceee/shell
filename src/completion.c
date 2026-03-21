@@ -131,8 +131,13 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 			continue;
 		}
 		if(ent ->d_type == DT_DIR){
-		}
-		if(ent->d_type == DT_REG){
+			char *folder = (char*)malloc(sizeof(char) * NAME_MAX);
+			folder[0] = '\0';
+			strcat(folder, ent->d_name);
+			strcat(folder, "/");
+			load_word(t, folder, 0);
+			free(folder);
+		}else if(ent->d_type == DT_REG){
 			load_word(t, ent->d_name, 0);
 		}
 	}
@@ -170,7 +175,10 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 			strcat(input, "/");
 		}
 		strcat(input, completions[0]);
-		strcat(input, " \0");
+		if(input[strlen(input)-1] != '/'){
+			strcat(input, " ");
+		}
+		strcat(input, "\0");
 	}else{
 		if(*tab_pressed == 0){
 			*tab_pressed += 1;
