@@ -147,7 +147,6 @@ void exec_cmd(int argc, char* cmd,char **argv,enum STATE state, char** output, c
 		int saved_stderr = dup(STDERR_FILENO);
 		int saved_stdout = dup(STDOUT_FILENO);
 		switch(state){
-			case PIPE:
 			case REDIRECT_SUCCESS:
 				dup2(stdout_ids[1], STDOUT_FILENO);
 				break;
@@ -173,7 +172,7 @@ void exec_cmd(int argc, char* cmd,char **argv,enum STATE state, char** output, c
 		close(stdout_ids[1]);
 		close(stderr_ids[1]);
 
-		if(state == REDIRECT_SUCCESS || state == PIPE){
+		if(state == REDIRECT_SUCCESS){
 			char buf[100];
 			while(1){
 				int n = read(stdout_ids[0],buf,100);

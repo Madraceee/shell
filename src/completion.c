@@ -1,15 +1,12 @@
 #include "completion.h"
-#include "trie.h"
-#include <dirent.h>
-#include <linux/limits.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 char* complete_cmd(char *input,struct trie *cmd_list, int *tab_pressed);
 char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], int no_of_args);
 
-char* handle_tab(char *input, int *input_count, char **output, int *is_tab_pressed,struct trie *cmd_completion_list){
+char* handle_tab(char *input, int *input_count, int *is_tab_pressed,struct trie *cmd_completion_list){
 	if(*input_count <= 0){
 		return input;
 	}
@@ -33,8 +30,10 @@ char* handle_tab(char *input, int *input_count, char **output, int *is_tab_press
 		input = complete_args(input, is_tab_pressed, cmd, args, no_of_args);
 		*input_count = strlen(input);
 	}
+
 	printf("%s", input);
 	printf("\a");
+	fflush(stdout);
 	return input;
 }
 
@@ -159,7 +158,6 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 		return input;
 	}
 
-
 	int i=0;
 	int relative_path_len = strlen(relative_path);
 	for(;i<relative_path_len;i++){
@@ -173,6 +171,17 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 		strcat(input, args[i]);
 		strcat(input, " ");
 	}
+
+	if(strlen(args[no_of_args-1]) == 0){
+		for(int i=0;i<no_of_completions;i++){
+			if(completions[i][strlen(completions[i])-1] == '/'){
+				strcpy(completions[0], completions[i]);
+				no_of_completions = 1;
+				break;
+			}
+		}
+	}
+
 	if(no_of_completions == 1){
 		if(strlen(relative_path) > 0){
 			strcat(input, relative_path);

@@ -13,4 +13,4 @@
 #include "built-in.h"
 #include "trie.h"
 
-char* handle_tab(char *input, int *input_count, char **output, int *is_tab_pressed,struct trie *cmd_completion);
+char* handle_tab(char *input, int *input_count, int *is_tab_pressed,struct trie *cmd_completion);

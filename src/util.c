@@ -1,4 +1,5 @@
 #include "util.h"
+#include <string.h>
 
 char* trim(char *str){
 	int i = 0;
@@ -46,11 +47,6 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 			}else{
 				*state = REDIRECT_SUCCESS;
 			}
-			break;
-		}
-		if(input[i] == '|'){
-			*raw_arg = &(*raw_arg)[i];
-			*state = PIPE;
 			break;
 		}
 		if(input[i] == '\''){
@@ -103,9 +99,6 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 			input[i] = '\a';
 		}
 	}
-	if(output[output_count-1] == ' '){
-		output_count -= 1;
-	}
 	output[output_count] = '\0';
 
 	int no_of_args = 0;
@@ -130,6 +123,10 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 		}
 	}
 	*cmd = raw_cmd;
+
+	if(no_of_args > 1 && args[no_of_args-1][0] == '\0'){
+		no_of_args -= 1;
+	}
 
 	return no_of_args;
 }

@@ -1,3 +1,4 @@
+#include "assert.h"
 #include <dirent.h>
 #include <linux/limits.h>
 #include <stdio.h>
@@ -35,7 +36,8 @@ void termios_startup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-int process(char *input, char *output, char *error);
+void process(char *cmds[], int index, int max_cmds);
+int process_cmd(char *input);
 
 // TODO: REDUCE HEAP USAGE
 int main(int argc, char *argv[]) {
@@ -47,12 +49,12 @@ int main(int argc, char *argv[]) {
 	struct trie* cmd_completion = new_trie();
 	load(cmd_completion);
 
-	const int no_of_cmds = 6;
-	char cmds[6][10] = {"echo", "exit", "type", "pwd", "cd", "history"};
-	for(int i = 0;i<no_of_cmds;i++){
-		load_word(cmd_completion, cmds[i], 0);
+	const int no_of_inbuilt_cmds = 6;
+	char inbuilt_cmds[6][10] = {"echo", "exit", "type", "pwd", "cd", "history"};
+	for(int i = 0;i<no_of_inbuilt_cmds;i++){
+		load_word(cmd_completion, inbuilt_cmds[i], 0);
 	}
-	cmd_completion->total_inputs += no_of_cmds;
+	cmd_completion->total_inputs += no_of_inbuilt_cmds;
 
 	// History
 	history = new_history(100);
@@ -60,12 +62,8 @@ int main(int argc, char *argv[]) {
 
 	while (1) {
 		enum STATE state = NORMAL;
-		char *input = (char *)malloc(sizeof(char) * (PATH_MAX * 500));
-		char *output = (char*)malloc(sizeof(char) * (PATH_MAX+50));
-		char *error = (char*)malloc(sizeof(char) * (PATH_MAX+50));
+		char *input = (char *)malloc(sizeof(char) * (PATH_MAX + 500));
 		int is_tab_pressed = 0;
-		output[0] = '\0';
-		error[0] = '\0';
 
 		printf("$ ");
 		int input_count = 0;
@@ -85,7 +83,7 @@ int main(int argc, char *argv[]) {
 				continue;
 			}
 			if(chr == '\t'){
-				input = handle_tab(input, &input_count, &output, &is_tab_pressed, cmd_completion);
+				input = handle_tab(input, &input_count,&is_tab_pressed, cmd_completion);
 				continue;
 			}
 			if(chr == '['){
@@ -105,22 +103,67 @@ int main(int argc, char *argv[]) {
 			putc(chr, stdout);
 		}
 		input[input_count] = '\0';
-		process(input, output, error);
+		int saved_stdin = dup(STDIN_FILENO);
+		int saved_stdout = dup(STDOUT_FILENO);
+		int saved_stderr = dup(STDERR_FILENO);
 
+		int no_of_cmds = 0;
+		char *cmds[PATH_MAX * 2];
+		while(input != NULL){
+			cmds[no_of_cmds++] = strsep(&input, "|");
+		}
+		process(cmds, 0, no_of_cmds);
+		assert(dup2(saved_stdin, STDIN_FILENO) != -1);
+		assert(dup2(saved_stdout, STDOUT_FILENO) != -1);
+		assert(dup2(saved_stderr, STDERR_FILENO) != -1);
+		close(saved_stdin);
+		close(saved_stdout);
+		close(saved_stderr);
 		free(input);
-		free(output);
-		free(error);
 	}
 	
 	return 0;
 }
 
-int process(char *input, char *output, char *error){
+void process(char *cmds[], int index, int max_cmds) {
+	if(index+1< max_cmds){
+		int fds[2];
+		if(pipe(fds) == -1){
+			perror("Error: pipe()");
+			exit(EXIT_FAILURE);
+		}
+
+		pid_t pid = fork();
+		if(pid == 0){
+			close(fds[0]);
+			dup2(fds[1], STDOUT_FILENO);
+			process_cmd(cmds[index]);
+			close(fds[1]);
+			_exit(EXIT_SUCCESS);
+		}else{
+			close(fds[1]);
+			dup2(fds[0],STDIN_FILENO);
+			process(cmds, index+1, max_cmds);
+			close(fds[0]);
+			waitpid(pid, NULL, 0);
+		}
+	}else{
+		process_cmd(cmds[index]);
+	}
+}
+
+
+int process_cmd(char *input){
+	char *output = (char*)malloc(sizeof(char) * (PATH_MAX*500));
+	char *error = (char*)malloc(sizeof(char) * (PATH_MAX*500));
+	output[0] = '\0';
+	error[0] = '\0';
+
 	char *input_ptr = input;
 	char *input_copy = strdup(input);
 
 	char *cmd;
-	char *args[100];
+	char *args[NAME_MAX];
 
 	enum STATE state = NORMAL;
 	int no_of_args = get_cmd_and_args(&input, &cmd, args, &state);
@@ -137,7 +180,7 @@ int process(char *input, char *output, char *error){
 	} else if (strcmp(cmd, "type") == 0) {
 		// type(no_of_args, args, cmds, no_of_cmds,&output, &error);
 	} else if (strcmp(cmd, "history") == 0){
-		return history_cmd(no_of_args, args,&output, &error, history);
+		history_cmd(no_of_args, args,&output, &error, history);
 	}else {
 		exec_cmd(no_of_args, cmd, args, state, &output, &error);
 	}
@@ -165,39 +208,6 @@ int process(char *input, char *output, char *error){
 		fprintf(file, "%s", error);
 		fclose(file);
 	}
-	if(state == PIPE && strlen(error) == 0){
-		strsep(&input, "|");
-		input = trim(input);
-
-		int std_in[2];
-		if(pipe(std_in) == -1){
-			perror("Error executing: Pipe issue");
-			exit(EXIT_FAILURE);
-		}
-
-		int saved_stdin = dup(STDIN_FILENO);
-
-		dup2(std_in[0], STDIN_FILENO);
-		int pid = fork();
-		if(pid == -1){
-			perror("Unable to execute process");
-			exit(EXIT_FAILURE);
-		}else if(pid == 0){
-			close(std_in[1]);
-			process(input, "", error);
-			close(std_in[0]);
-			exit(EXIT_SUCCESS);
-		}else {
-			close(std_in[0]);
-			write(std_in[1], output, strlen(output));
-			output[0] = '\0';
-			close(std_in[1]);
-			waitpid(pid, NULL, 0);
-		}
-
-		dup2(saved_stdin, STDIN_FILENO);
-		fflush(STDIN_FILENO);
-	}
 
 	if(state != REDIRECT_SUCCESS){
 		printf("%s", output);
@@ -210,5 +220,7 @@ int process(char *input, char *output, char *error){
 	}
 
 	free(input_copy);
+	free(output);
+	free(error);
 	return 0;
 }
