@@ -17,7 +17,7 @@ char* trim(char *str){
 
 	i = strlen(str);
 
-	while(i > 0 && (isblank(str[i]) != 0)){
+	while(i > 0 && isblank(str[i]) != 0){
 		i--;
 	}
 
@@ -46,6 +46,11 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 			}else{
 				*state = REDIRECT_SUCCESS;
 			}
+			break;
+		}
+		if(input[i] == '|'){
+			*raw_arg = &(*raw_arg)[i];
+			*state = PIPE;
 			break;
 		}
 		if(input[i] == '\''){
@@ -97,6 +102,9 @@ int get_cmd_and_args(char **raw_arg, char **cmd, char *args[], enum STATE *state
 		if(i > 0  && input[i] == '\\' && input[i-1] == '\\'){
 			input[i] = '\a';
 		}
+	}
+	if(output[output_count-1] == ' '){
+		output_count -= 1;
 	}
 	output[output_count] = '\0';
 

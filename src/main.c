@@ -35,6 +35,8 @@ void termios_startup(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
+int process(char *input, char *output, char *error);
+
 // TODO: REDUCE HEAP USAGE
 int main(int argc, char *argv[]) {
 	// Terminal Startup
@@ -103,75 +105,110 @@ int main(int argc, char *argv[]) {
 			putc(chr, stdout);
 		}
 		input[input_count] = '\0';
-		char *input_ptr = input;
-		char *input_copy = strdup(input);
+		process(input, output, error);
 
-		char *cmd;
-		char *args[100];
-
-		state = NORMAL;
-		int no_of_args = get_cmd_and_args(&input, &cmd, args, &state);
-
-		insert_record(history, strdup(input_copy));
-		if (strcmp(cmd, "exit") == 0) {
-			return 0;
-		}else if (strcmp(cmd, "echo") == 0) {
-			echo(no_of_args, args, &output, &error);
-		} else if (strcmp(cmd, "pwd") == 0) {
-			pwd(no_of_args, args, &output, &error);
-		} else if (strcmp(cmd, "cd") == 0) {
-			cd(no_of_args, args, &output, &error);
-		} else if (strcmp(cmd, "type") == 0) {
-			type(no_of_args, args, cmds, no_of_cmds,&output, &error);
-		} else if (strcmp(cmd, "history") == 0){
-			if(history_cmd(no_of_args, args,&output, &error, history) == 1){
-				continue;
-			}
-		}else {
-			exec_cmd(no_of_args, cmd, args, state, &output, &error);
-		}
-		if(state == REDIRECT_SUCCESS){
-			strsep(&input, ">");
-			char *mode = "w+";
-			if(input[0] == '>'){
-				strsep(&input, ">");
-				mode = "a+";
-			}
-			input = trim(input);
-			FILE *file = fopen(input, mode);
-			fprintf(file, "%s", output);
-			fclose(file);
-		}else if(state == REDIRECT_FAILURE){
-			strsep(&input, ">");
-			char *mode = "w+";
-			if(input[0] == '>'){
-				strsep(&input, ">");
-				mode = "a+";
-			}
-			input = trim(input);
-			FILE *file = fopen(input, mode);
-			fprintf(file, "%s", error);
-			fclose(file);
-		}
-
-		if(state != REDIRECT_SUCCESS){
-			printf("%s", output);
-		}
-		if(state != REDIRECT_FAILURE){
-			printf("%s", error);
-		}
-		
-
-		for(int i=0;i<no_of_args;i++){
-			free(args[i]);
-		}
+		free(input);
 		free(output);
 		free(error);
-		free(input_copy);
-		free(input_ptr);
 	}
 	
 	return 0;
 }
 
+int process(char *input, char *output, char *error){
+	char *input_ptr = input;
+	char *input_copy = strdup(input);
 
+	char *cmd;
+	char *args[100];
+
+	enum STATE state = NORMAL;
+	int no_of_args = get_cmd_and_args(&input, &cmd, args, &state);
+	insert_record(history, strdup(input_copy));
+
+	if (strcmp(cmd, "exit") == 0) {
+		 exit(0);
+	}else if (strcmp(cmd, "echo") == 0) {
+		echo(no_of_args, args, &output, &error);
+	} else if (strcmp(cmd, "pwd") == 0) {
+		pwd(no_of_args, args, &output, &error);
+	} else if (strcmp(cmd, "cd") == 0) {
+		cd(no_of_args, args, &output, &error);
+	} else if (strcmp(cmd, "type") == 0) {
+		// type(no_of_args, args, cmds, no_of_cmds,&output, &error);
+	} else if (strcmp(cmd, "history") == 0){
+		return history_cmd(no_of_args, args,&output, &error, history);
+	}else {
+		exec_cmd(no_of_args, cmd, args, state, &output, &error);
+	}
+
+	if(state == REDIRECT_SUCCESS){
+		strsep(&input, ">");
+		char *mode = "w+";
+		if(input[0] == '>'){
+			strsep(&input, ">");
+			mode = "a+";
+		}
+		input = trim(input);
+		FILE *file = fopen(input, mode);
+		fprintf(file, "%s", output);
+		fclose(file);
+	}else if(state == REDIRECT_FAILURE){
+		strsep(&input, ">");
+		char *mode = "w+";
+		if(input[0] == '>'){
+			strsep(&input, ">");
+			mode = "a+";
+		}
+		input = trim(input);
+		FILE *file = fopen(input, mode);
+		fprintf(file, "%s", error);
+		fclose(file);
+	}
+	if(state == PIPE && strlen(error) == 0){
+		strsep(&input, "|");
+		input = trim(input);
+
+		int std_in[2];
+		if(pipe(std_in) == -1){
+			perror("Error executing: Pipe issue");
+			exit(EXIT_FAILURE);
+		}
+
+		int saved_stdin = dup(STDIN_FILENO);
+
+		dup2(std_in[0], STDIN_FILENO);
+		int pid = fork();
+		if(pid == -1){
+			perror("Unable to execute process");
+			exit(EXIT_FAILURE);
+		}else if(pid == 0){
+			close(std_in[1]);
+			process(input, "", error);
+			close(std_in[0]);
+			exit(EXIT_SUCCESS);
+		}else {
+			close(std_in[0]);
+			write(std_in[1], output, strlen(output));
+			output[0] = '\0';
+			close(std_in[1]);
+			waitpid(pid, NULL, 0);
+		}
+
+		dup2(saved_stdin, STDIN_FILENO);
+		fflush(STDIN_FILENO);
+	}
+
+	if(state != REDIRECT_SUCCESS){
+		printf("%s", output);
+	}
+	if(state != REDIRECT_FAILURE){
+		printf("%s", error);
+	}
+	for(int i=0;i<no_of_args;i++){
+		free(args[i]);
+	}
+
+	free(input_copy);
+	return 0;
+}

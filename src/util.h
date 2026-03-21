@@ -17,6 +17,7 @@ enum STATE {
 	DOUBLE,
 	REDIRECT_SUCCESS,
 	REDIRECT_FAILURE,
+	PIPE,
 };
 
 char* trim(char *str);
