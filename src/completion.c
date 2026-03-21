@@ -96,7 +96,6 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 	char path[PATH_MAX];
 	char *val = getcwd(path, PATH_MAX);
 	if(val == NULL){
-		printf("\nError fetching files\n");
 		return input;
 	}
 	
@@ -114,12 +113,13 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 		strcat(relative_path,"/");
 		strcat(relative_path,folder);
 	}
-	strcat(path, relative_path);
+	if(relative_path[0] != '\0'){
+		strcat(path, relative_path);
+	}
 	free(last_arg);
 
 	DIR* dir = opendir(path);
 	if(dir == NULL){
-		printf("\nError fetching files\n");
 		return input;
 	}
 	struct dirent* ent;
@@ -156,7 +156,8 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 
 
 	int i=0;
-	for(;i<strlen(relative_path)-1;i++){
+	int relative_path_len = strlen(relative_path);
+	for(;i<relative_path_len;i++){
 		relative_path[i] = relative_path[i+1];
 	}
 	relative_path[i] = '\0';
