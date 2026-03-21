@@ -1,6 +1,9 @@
 #include "completion.h"
 #include "trie.h"
+#include <dirent.h>
+#include <linux/limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 char* complete_cmd(char *input,struct trie *cmd_list, int *tab_pressed);
@@ -96,33 +99,75 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 		printf("\nError fetching files\n");
 		return input;
 	}
-	DIR* dir = opendir(val);
+	
+	char *last_arg = strdup(args[no_of_args-1]);
+	char *relative_path = (char*)malloc(sizeof(char) *(PATH_MAX));
+	relative_path[0] = '\0';
+	while(last_arg != NULL){
+		char *folder = strsep(&last_arg, "/");
+		if(folder[0] == '\0'){
+			break;
+		}
+		if(last_arg == NULL){
+			break;
+		}
+		strcat(relative_path,"/");
+		strcat(relative_path,folder);
+	}
+	strcat(path, relative_path);
+	free(last_arg);
+
+	DIR* dir = opendir(path);
 	if(dir == NULL){
 		printf("\nError fetching files\n");
 		return input;
 	}
 	struct dirent* ent;
 	
-	completions = (char**)malloc(sizeof(char*) * 999);
 	struct trie *t = new_trie();
 	int completions_count = 0;
 	while((ent = readdir(dir)) != NULL){
+		if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0) {
+			continue;
+		}
+		if(ent ->d_type == DT_DIR){
+		}
 		if(ent->d_type == DT_REG){
 			load_word(t, ent->d_name, 0);
 		}
 	}
 	closedir(dir);
 
-	int no_of_completions = get_completion(t, args[no_of_args-1], &completions);
+	completions = (char**)malloc(sizeof(char*) * 999);
+
+	last_arg = strdup(args[no_of_args-1]);
+	char *file = (char*)malloc(sizeof(char) * PATH_MAX);
+	while(last_arg != NULL){
+		file = strsep(&last_arg, "/");
+	}
+	free(last_arg);
+
+	int no_of_completions = get_completion(t, file, &completions);
 
 	if(no_of_completions == 0){
 		free(completions);
 		return input;
 	}
 
+
+	int i=0;
+	for(;i<strlen(relative_path)-1;i++){
+		relative_path[i] = relative_path[i+1];
+	}
+	relative_path[i] = '\0';
+
 	input[0] = '\0';
 	sprintf(input, "%s ", cmd);
 	if(no_of_completions == 1){
+		if(strlen(relative_path) > 0){
+			strcat(input, relative_path);
+			strcat(input, "/");
+		}
 		strcat(input, completions[0]);
 		strcat(input, " \0");
 	}else{
@@ -146,6 +191,10 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 				}
 				i++;
 			}
+			if(strlen(relative_path) > 0){
+				strcat(input, relative_path);
+				strcat(input, "/");
+			}
 			strncat(input,completions[0], i);
 			strcat(input, "\0");
 		}else{
@@ -163,3 +212,22 @@ char* complete_args(char *input, int *tab_pressed,char *cmd, char *args[100], in
 	free(completions);
 	return input;
 }
+
+// void get_files_completion(struct trie *t,char *path){
+// 	DIR* dir = opendir(path);
+// 	if(dir == NULL){
+// 		printf("\nError fetching files\n");
+// 	}
+// 	struct dirent* ent;
+//
+// 	int completions_count = 0;
+// 	while((ent = readdir(dir)) != NULL){
+// 		if(ent ->d_type == DT_DIR){
+// 				get_files_completion(t, );
+// 		}
+// 		if(ent->d_type == DT_REG){
+// 			load_word(t, ent->d_name, 0);
+// 		}
+// 	}
+// 	closedir(dir);
+// }
